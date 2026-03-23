@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>مغامرة العلوم - الصف الأول</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #f0faff; text-align: center; margin: 0; padding: 20px; overflow: hidden; }
+        .game-card { max-width: 700px; margin: 50px auto; background: #fff; border-radius: 30px; padding: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 8px solid #4db6ac; position: relative; }
+        h1 { color: #00796b; font-size: 35px; }
+        .q-text { font-size: 28px; margin: 30px 0; color: #333; min-height: 80px; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .btn-opt { padding: 30px; font-size: 24px; border: none; border-radius: 20px; cursor: pointer; color: white; font-weight: bold; transition: transform 0.2s; box-shadow: 0 5px 0 #bbb; }
+        .btn-opt:active { transform: translateY(5px); box-shadow: none; }
+        .blue { background-color: #2196f3; }
+        .orange { background-color: #ff9800; }
+        
+        /* تأثيرات الصح والخطأ */
+        #feedback { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 150px; display: none; z-index: 10; pointer-events: none; }
+        .show-feedback { display: block !important; animation: pop 0.8s ease-out; }
+        @keyframes pop { 0% { transform: translate(-50%, -50%) scale(0); } 50% { transform: translate(-50%, -50%) scale(1.2); } 100% { transform: translate(-50%, -50%) scale(1); } }
+        
+        #win-screen { display: none; }
+        .medal { font-size: 100px; }
+        .btn-start { padding: 15px 40px; font-size: 25px; background: #4caf50; color: white; border: none; border-radius: 50px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<!-- واجهة البداية لتفعيل الصوت -->
+<div id="start-screen" class="game-card">
+    <h1>مرحباً بك يا بطل العلوم 🧪</h1>
+    <p style="font-size: 20px;">جاهز لرحلة الاستكشاف؟</p>
+    <button class="btn-start" onclick="startGame()">اضغط هنا للبدء 🚀</button>
+</div>
+
+<!-- واجهة اللعب -->
+<div id="game-ui" class="game-card" style="display:none;">
+    <div id="feedback"></div>
+    <div id="progress" style="font-size: 20px; color: #888;">سؤال <span id="q-num">1</span> من 10</div>
+    <div class="q-text" id="question-display"></div>
+    <div class="options-grid">
+        <button class="btn-opt blue" onclick="check(0)" id="opt0"></button>
+        <button class="btn-opt orange" onclick="check(1)" id="opt1"></button>
+    </div>
+</div>
+
+<!-- واجهة الفوز -->
+<div id="win-screen" class="game-card">
+    <h1>ممتاز يا ذكي! 🥳</h1>
+    <div class="medal" id="medal-icon"></div>
+    <h2 id="final-res"></h2>
+    <button class="btn-start" onclick="location.reload()">العب مرة أخرى 🔄</button>
+</div>
+
+<!-- الصوتيات -->
+<audio id="bg-music" loop src="https://www.soundhelix.com"></audio>
+<audio id="s-correct" src="https://assets.mixkit.co"></audio>
+<audio id="s-wrong" src="https://assets.mixkit.co"></audio>
+
+<script>
+const quiz = [
+    { q: "المادة التي لها شكل ثابت لا يتغير هي:", a: ["الصلبة", "السائلة"], c: 0 },
+    { q: "الحليب والماء من الأمثلة على المواد:", a: ["الصلبة", "السائلة"], c: 1 },
+    { q: "البخار غاز، هل يمكننا رؤيته دائماً؟", a: ["نعم", "لا (أحياناً)"], c: 1 },
+    { q: "نستخدم المسطرة لقياس الـ...", a: ["الكتلة", "الطول"], c: 1 },
+    { q: "الميزان أداة تستخدم لقياس الـ...", a: ["الكتلة", "الطول"], c: 0 },
+    { q: "الظل يتكون عندما يحجب جسم ما الـ...", a: ["الضوء", "الماء"], c: 0 },
+    { q: "يكون الظل طويلاً في وقت...", a: ["الصباح", "الظهيرة"], c: 0 },
+    { q: "الهواء مادة موجودة حولنا، هل هو مادة؟", a: ["نعم", "لا"], c: 0 },
+    { q: "المادة السائلة تأخذ شكل الـ...", a: ["الوعاء", "الكرة دائماً"], c: 0 },
+    { q: "أي مما يلي مادة صلبة؟", a: ["القلم", "العصير"], c: 0 }
+];
+
+let current = 0;
+let score = 0;
+
+function startGame() {
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('game-ui').style.display = 'block';
+    document.getElementById('bg-music').volume = 0.2;
+    document.getElementById('bg-music').play();
+    showQ();
+}
+
+function showQ() {
+    let q = quiz[current];
+    document.getElementById('q-num').innerText = current + 1;
+    document.getElementById('question-display').innerText = q.q;
+    document.getElementById('opt0').innerText = q.a[0];
+    document.getElementById('opt1').innerText = q.a[1];
+}
+
+function check(choice) {
+    let feedback = document.getElementById('feedback');
+    if(choice === quiz[current].c) {
+        score++;
+        feedback.innerText = "✅";
+        document.getElementById('s-correct').play();
+    } else {
+        feedback.innerText = "❌";
+        document.getElementById('s-wrong').play();
+    }
+    
+    feedback.classList.add('show-feedback');
+    
+    setTimeout(() => {
+        feedback.classList.remove('show-feedback');
+        current++;
+        if(current < 10) showQ(); else end();
+    }, 1000);
+}
+
+function end() {
+    document.getElementById('game-ui').style.display = 'none';
+    document.getElementById('win-screen').style.display = 'block';
+    document.getElementById('final-res').innerText = `حصلت على ${score} من 10`;
+    let medal = document.getElementById('medal-icon');
+    if(score >= 8) medal.innerText = "🥇 وسام البطل الذهبي";
+    else if(score >= 5) medal.innerText = "🥈 وسام الاجتهاد الفضي";
+    else medal.innerText = "⭐ وسام المحاولة الجيدة";
+}
+</script>
+
+</body>
+</html>

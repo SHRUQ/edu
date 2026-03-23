@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لعبة الحروف السهلة ✨</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #FFF9E6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .box { width: 90%; max-width: 600px; background: white; border-radius: 40px; padding: 40px; border: 10px solid #FFD93D; text-align: center; box-shadow: 0 10px 0 #F6BA00; }
+        
+        h1 { color: #FF6B6B; font-size: 45px; margin-bottom: 20px; }
+        h2 { color: #333; font-size: 35px; margin: 20px 0; }
+
+        .btn { padding: 25px 40px; font-size: 35px; cursor: pointer; border-radius: 30px; border: none; margin: 15px; font-weight: bold; width: 100%; color: white; transition: 0.3s; }
+        .btn-start { background: #6BCB77; }
+        .btn-opt { background: #4D96FF; box-shadow: 0 8px #3b76cc; }
+        .btn-opt:active { transform: translateY(5px); box-shadow: none; }
+
+        #mark { font-size: 150px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0; pointer-events: none; z-index: 10; }
+        .ani { animation: zoom 0.8s ease-out; }
+        @keyframes zoom { 0% { opacity:0; scale:0.5; } 50% { opacity:1; scale:1.2; } 100% { opacity:0; scale:1; } }
+        
+        .review { font-size: 28px; background: #E6F4F1; padding: 20px; border-radius: 20px; text-align: right; margin-bottom: 30px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <div id="mark"></div>
+
+    <!-- صفحة البداية -->
+    <div id="p1">
+        <h1>أهلاً بك يا بطل! 👋</h1>
+        <div class="review">
+            📖 <b>سَـ</b> : فتحة (مَـوز) <br>
+            📖 <b>بـا</b> : مد طويل (بـاب) <br>
+            📖 <b>لـ</b> : حرف اللام (لعبة)
+        </div>
+        <button class="btn btn-start" onclick="start()">ابدأ اللعب ▶️</button>
+    </div>
+
+    <!-- صفحة اللعب -->
+    <div id="p2" class="hidden">
+        <h2 id="q-txt">...</h2>
+        <div id="opts"></div>
+    </div>
+
+    <!-- صفحة النهاية -->
+    <div id="p3" class="hidden">
+        <h1 style="color: #6BCB77;">رائع جداً! 🌟</h1>
+        <h2 id="res">✨✨✨</h2>
+        <button class="btn btn-start" onclick="location.reload()">مرة أخرى 🔄</button>
+    </div>
+</div>
+
+<audio id="bg" loop src="https://www.soundjay.com"></audio>
+<audio id="win" src="https://www.myinstants.com"></audio>
+<audio id="lose" src="https://www.myinstants.com"></audio>
+<audio id="clap" src="https://www.myinstants.com"></audio>
+
+<script>
+const qs = [
+    {q: "أين حرف اللام (لـ)؟", o: ["لـيمون 🍋", "تفاحة 🍎"], a: 0},
+    {q: "كلمة 'بـاب' فيها صوت طويل؟", o: ["نعم ✅", "لا ❌"], a: 0},
+    {q: "ما ضد كلمة 'كبير'؟", o: ["صغير 🤏", "جميل ✨"], a: 0},
+    {q: "حرف اللام في 'نحل' هو آخر حرف؟", o: ["صح ✅", "خطأ ❌"], a: 0},
+    {q: "أي كلمة بها مد ألف؟", o: ["دار 🏠", "قط 🐱"], a: 0},
+    {q: "صوت (مَـ) فوقه فتحة؟", o: ["نعم ✅", "لا ❌"], a: 0},
+    {q: "ما ضد كلمة 'فرحان'؟", o: ["حزين 😢", "قوي 💪"], a: 0},
+    {q: "كلمة 'فيل' بها مد ياء؟", o: ["صح ✅", "خطأ ❌"], a: 0},
+    {q: "أين اللام في 'جمل'؟", o: ["في الآخر", "في الأول"], a: 0},
+    {q: "كلمة 'حـوت' بها مد واو؟", o: ["صح ✅", "خطأ ❌"], a: 0}
+];
+
+let cur = 0;
+
+function start() {
+    document.getElementById('p1').classList.add('hidden');
+    document.getElementById('p2').classList.remove('hidden');
+    document.getElementById('bg').play();
+    load();
+}
+
+function load() {
+    const q = qs[cur];
+    document.getElementById('q-txt').innerText = q.q;
+    const box = document.getElementById('opts');
+    box.innerHTML = '';
+    q.o.forEach((o, i) => {
+        const b = document.createElement('button');
+        b.innerText = o; b.className = 'btn btn-opt';
+        b.onclick = () => check(i);
+        box.appendChild(b);
+    });
+}
+
+function check(i) {
+    const m = document.getElementById('mark');
+    if (i === qs[cur].a) {
+        m.innerText = "✅"; m.style.color = "#6BCB77";
+        document.getElementById('win').play();
+    } else {
+        m.innerText = "❌"; m.style.color = "#FF6B6B";
+        document.getElementById('lose').play();
+    }
+    m.classList.remove('ani');
+    void m.offsetWidth;
+    m.classList.add('ani');
+
+    setTimeout(() => {
+        cur++;
+        if (cur < qs.length) load();
+        else end();
+    }, 1000);
+}
+
+function end() {
+    document.getElementById('p2').classList.add('hidden');
+    document.getElementById('p3').classList.remove('hidden');
+    document.getElementById('clap').play();
+}
+</script>
+</body>
+</html>

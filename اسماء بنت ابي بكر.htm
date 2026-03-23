@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مسابقة السيدة أسماء بنت أبي بكر الكبرى</title>
+    <style>
+        @import url('https://fonts.googleapis.com');
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #74ebd5 0%, #acb6e5 100%);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #game-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            z-index: 100;
+        }
+
+        .question-text {
+            font-size: 1.6rem;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            min-height: 80px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        button {
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #3498db;
+            color: white;
+            font-family: 'Cairo', sans-serif;
+            box-shadow: 0 4px 0 #2980b9;
+        }
+
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        #score-status {
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+
+        /* تأثير البلالين */
+        .balloon {
+            position: absolute;
+            bottom: -150px;
+            width: 50px;
+            height: 70px;
+            border-radius: 50%;
+            animation: floatUp 7s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-120vh) rotate(45deg); opacity: 0; }
+        }
+
+        #start-screen h1 { color: #e67e22; }
+        .win-msg { font-size: 2rem; color: #2ecc71; }
+    </style>
+</head>
+<body>
+
+    <!-- موسيقى الخلفية والتشجيع -->
+    <audio id="bgMusic" loop>
+        <source src="https://www.soundjay.com" type="audio/mpeg">
+    </audio>
+
+    <div id="game-card">
+        <!-- شاشة البداية -->
+        <div id="start-screen">
+            <h1>🌟 مسابقة بطلة الهجرة 🌟</h1>
+            <p>15 سؤالاً عن السيدة أسماء بنت أبي بكر رضي الله عنها</p>
+            <button onclick="startGame()" style="background:#27ae60; box-shadow: 0 4px 0 #1e8449; font-size: 1.5rem; padding: 20px 50px;">ابدأ اللعبة 🚀</button>
+        </div>
+
+        <!-- شاشة الأسئلة -->
+        <div id="quiz-screen" style="display:none;">
+            <div id="score-status">السؤال: <span id="current-idx">1</span> / 15</div>
+            <div class="question-text" id="q-text"></div>
+            <div class="options-grid" id="options-box"></div>
+        </div>
+
+        <!-- شاشة النهاية -->
+        <div id="end-screen" style="display:none;">
+            <h2 class="win-msg">ممتاز يا بطل! 🎉</h2>
+            <p id="final-result" style="font-size: 1.5rem;"></p>
+            <button onclick="location.reload()">العب مرة أخرى 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const allQuestions = [
+            // الـ 5 أسئلة الأولى
+            { q: "من هي أسماء رضي الله عنها؟", ops: ["ابنة أبي بكر الصديق", "ابنة عمر بن الخطاب", "ابنة عثمان بن عفان"], ans: 0 },
+            { q: "ماذا فعلت أسماء بنطاقها؟", ops: ["أهدته لجارتها", "شقت نطاقها لربط الزاد", "تركته في البيت"], ans: 1 },
+            { q: "بماذا لُقبت السيدة أسماء؟", ops: ["الباحثة", "ذات النطاقين", "أم المساكين"], ans: 1 },
+            { q: "ماذا أراد أبو جهل من السيدة أسماء؟", ops: ["معرفة مكان النبي وأبيها", "إعطاؤها ذهباً", "طلب الطعام"], ans: 0 },
+            { q: "لو أخبرت أسماء بمكان أبيها، سيتعرض النبي وأبو بكر للخطر.", ops: ["صح", "خطأ"], ans: 0 },
+            
+            // الـ 10 أسئلة الإضافية
+            { q: "كانت السيدة أسماء تتصدق بمالها لأنها كانت:", ops: ["بخيلة", "كريمة", "مترددة"], ans: 1 },
+            { q: "كانت السيدة أسماء تقضي ليلها في العبادة و:", ops: ["النوم", "قيام الليل", "اللعب"], ans: 1 },
+            { q: "من صفات أسماء أنها كانت تبر والديها.", ops: ["صح", "خطأ"], ans: 0 },
+            { q: "نقتدي بالسيدة أسماء في:", ops: ["قوة الإيمان والشجاعة", "الخوف", "الكسل"], ans: 0 },
+            { q: "أبو بكر الصديق كان صاحب الرسول ﷺ في:", ops: ["السفر للشام", "الهجرة للمدينة", "فتح مكة"], ans: 1 },
+            { q: "كانت أسماء تحمل الطعام والشراب للنبي وأبيها وهما في الغار.", ops: ["صح", "خطأ"], ans: 0 },
+            { q: "لقب (ذات النطاقين) أطلقه عليها الرسول ﷺ.", ops: ["صح", "خطأ"], ans: 0 },
+            { q: "تميزت السيدة أسماء بحب الله ورسوله.", ops: ["صح", "خطأ"], ans: 0 },
+            { q: "هل كانت أسماء تخاف من تهديدات أبي جهل؟", ops: ["نعم", "لا، كانت شجاعة"], ans: 1 },
+            { q: "أكمل: أسماء بنت أبي بكر هي شخصية نقتدي بها في حياتنا.", ops: ["صح", "خطأ"], ans: 0 }
+        ];
+
+        let currentIndex = 0;
+        let score = 0;
+        const bgMusic = document.getElementById('bgMusic');
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            bgMusic.play();
+            renderQuestion();
+            spawnBalloons();
+        }
+
+        function renderQuestion() {
+            const q = allQuestions[currentIndex];
+            document.getElementById('q-text').innerText = q.q;
+            document.getElementById('current-idx').innerText = currentIndex + 1;
+            
+            const box = document.getElementById('options-box');
+            box.innerHTML = '';
+            
+            q.ops.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(i);
+                box.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(i) {
+            if(i === allQuestions[currentIndex].ans) {
+                score++;
+            }
+            
+            currentIndex++;
+            if(currentIndex < allQuestions.length) {
+                renderQuestion();
+            } else {
+                showFinal();
+            }
+        }
+
+        function showFinal() {
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'block';
+            document.getElementById('final-result').innerText = `لقد أجبت على ${score} من 15 إجابة صحيحة!`;
+        }
+
+        function spawnBalloons() {
+            setInterval(() => {
+                const b = document.createElement('div');
+                b.className = 'balloon';
+                b.style.left = Math.random() * 90 + 'vw';
+                b.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                document.body.appendChild(b);
+                setTimeout(() => b.remove(), 7000);
+            }, 600);
+        }
+    </script>
+</body>
+</html>

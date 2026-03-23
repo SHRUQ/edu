@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة النظام في حياتي - شروق الحنيطي</title>
+    <style>
+        :root { --blue: #0077b6; --light-blue: #e0f2f1; --white: #ffffff; --green: #4caf50; --red: #f44336; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--light-blue); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow-x: hidden; }
+        
+        #game-card { width: 95%; max-width: 800px; background: var(--white); border-radius: 40px; padding: 40px; box-shadow: 0 25px 50px rgba(0,0,0,0.1); position: relative; text-align: center; border: 4px solid var(--blue); }
+        
+        /* الخطوط الكبيرة */
+        h1 { font-size: 42px; color: var(--blue); }
+        .q-text { font-size: 32px; font-weight: bold; margin: 25px 0; color: #333; line-height: 1.5; }
+        .signature { position: absolute; bottom: 15px; right: 30px; font-size: 16px; color: #777; font-style: italic; }
+        
+        /* الأزرار */
+        .btn-box { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        button { padding: 25px; font-size: 24px; border: none; border-radius: 20px; cursor: pointer; transition: 0.3s; background: #f0f0f0; font-weight: bold; }
+        button:hover { transform: scale(1.03); background: var(--blue); color: white; }
+        .start-btn { background: var(--blue); color: white; padding: 20px 60px; font-size: 30px; }
+
+        /* نظام التوصيل */
+        .match-container { display: flex; justify-content: space-around; margin-top: 20px; }
+        .match-item { padding: 15px; border: 3px dashed var(--blue); border-radius: 15px; cursor: grab; background: #fff; font-size: 22px; margin: 10px; }
+        .drop-zone { padding: 25px; border: 3px solid #ccc; border-radius: 15px; min-width: 150px; font-size: 22px; background: #fafafa; }
+
+        /* الفراغات */
+        .blank-input { font-size: 28px; padding: 10px; width: 200px; text-align: center; border: 3px solid var(--blue); border-radius: 10px; }
+
+        #quiz-area, #result-screen { display: none; }
+        .balloon { position: absolute; bottom: -100px; width: 45px; height: 60px; border-radius: 50%; animation: float 4s linear forwards; }
+        @keyframes float { to { transform: translateY(-900px); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<audio id="s-ok" src="https://www.soundjay.com"></audio>
+<audio id="s-no" src="https://www.soundjay.com"></audio>
+
+<div id="game-card">
+    <!-- شاشة البداية -->
+    <div id="start-screen">
+        <div style="font-size: 100px;">🏠🏫🏘️</div>
+        <h1>درس النظام في بلادي</h1>
+        <p style="font-size: 24px; color: #555;">هيا نلعب ونتعلم كيف نكون منظمين!</p>
+        <button class="start-btn" onclick="start()">ابدأ الرحلة 🚀</button>
+        <div class="signature">إعداد: شروق الحنيطي</div>
+    </div>
+
+    <!-- منطقة الأسئلة -->
+    <div id="quiz-area">
+        <div id="progress" style="font-size: 20px; color: var(--blue); margin-bottom: 10px;">سؤال 1 من 20</div>
+        <div id="q-img" style="font-size: 80px;">✨</div>
+        <div id="q-text" class="q-text"></div>
+        <div id="options" class="btn-box"></div>
+        <div id="interactive-zone"></div>
+        <div class="signature" style="position: static; margin-top: 40px;">شروق الحنيطي</div>
+    </div>
+
+    <!-- شاشة النتيجة -->
+    <div id="result-screen">
+        <h1 id="res-msg"></h1>
+        <div id="res-icon" style="font-size: 120px; margin: 20px;"></div>
+        <p id="res-score" style="font-size: 35px; font-weight: bold;"></p>
+        <button onclick="location.reload()" class="start-btn">العب مرة أخرى 🔄</button>
+        <div class="signature">شروق الحنيطي</div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        // خيارات وصح وخطأ (10)
+        { t: "أضع القمامة في سلة المهملات:", a: ["صح ✅", "خطأ ❌"], c: 0, i: "🗑️", type: "choice" },
+        { t: "أرتب سريري فور استيقاظي:", a: ["دائمًا", "أحيانًا"], c: 0, i: "🛌", type: "choice" },
+        { t: "اللعب بالكرة داخل المنزل سلوك نظامي؟", a: ["لا ❌", "نعم ✅"], c: 0, i: "⚽", type: "choice" },
+        { t: "أرفع يدي قبل الإجابة في الفصل:", a: ["صح ✅", "خطأ ❌"], c: 0, i: "✋", type: "choice" },
+        { t: "أحافظ على جدران مدرستي نظيفة:", a: ["صح ✅", "خطأ ❌"], c: 0, i: "🖍️", type: "choice" },
+        { t: "أرمي الأوراق في ساحة المدرسة:", a: ["خطأ ❌", "صح ✅"], c: 0, i: "🏫", type: "choice" },
+        { t: "أين أضع ملابسي النظيفة؟", a: ["في الخزانة", "على الأرض"], c: 0, i: "👕", type: "choice" },
+        { t: "أزعج الجيران بالصوت العالي:", a: ["خطأ ❌", "صح ✅"], c: 0, i: "📢", type: "choice" },
+        { t: "نظام الحي يجعل المكان:", a: ["جميلاً", "قبيحاً"], c: 0, i: "🌳", type: "choice" },
+        { t: "أساعد في زراعة الأشجار في حيي:", a: ["صح ✅", "خطأ ❌"], c: 0, i: "🌱", type: "choice" },
+        
+        // إكمال فراغ (5)
+        { t: "أرتب ألعابي في صندوق ....", a: ["الألعاب"], c: "الألعاب", i: "🧸", type: "fill" },
+        { t: "أقف في الطابور المدرس بـ....", a: ["انتظام"], c: "انتظام", i: "🚶", type: "fill" },
+        { t: "أحافظ على نظام .... الذي أسكنه", a: ["الحي"], c: "الحي", i: "🏘️", type: "fill" },
+        { t: "النظام يوفر لنا الوقت و ....", a: ["الجهد"], c: "الجهد", i: "⏳", type: "fill" },
+        { t: "أنا طفل .... أحب وطني", a: ["منظم"], c: "منظم", i: "⭐", type: "fill" },
+
+        // توصيل مبسط (5 - كخيار فرز)
+        { t: "صنّف السلوك: (تكسير أزهار الحديقة)", a: ["سلوك خاطئ", "سلوك صحيح"], c: 0, i: "🌸", type: "choice" },
+        { t: "صنّف السلوك: (الاستماع للمعلمة)", a: ["سلوك صحيح", "سلوك خاطئ"], c: 0, i: "👩‍🏫", type: "choice" },
+        { t: "صنّف السلوك: (الكتابة على الطاولة)", a: ["سلوك خاطئ", "سلوك صحيح"], c: 0, i: "📝", type: "choice" },
+        { t: "صنّف السلوك: (مساعدة كبار السن)", a: ["سلوك صحيح", "سلوك خاطئ"], c: 0, i: "👴", type: "choice" },
+        { t: "صنّف السلوك: (المشي بهدوء)", a: ["سلوك صحيح", "سلوك خاطئ"], c: 0, i: "👟", type: "choice" }
+    ];
+
+    let current = 0;
+    let score = 0;
+
+    function start() {
+        document.getElementById("start-screen").style.display = "none";
+        document.getElementById("quiz-area").style.display = "block";
+        loadQ();
+    }
+
+    function loadQ() {
+        const q = questions[current];
+        document.getElementById("progress").innerText = `سؤال ${current + 1} من 20`;
+        document.getElementById("q-text").innerText = q.t;
+        document.getElementById("q-img").innerText = q.i;
+        
+        const optBox = document.getElementById("options");
+        const zone = document.getElementById("interactive-zone");
+        optBox.innerHTML = "";
+        zone.innerHTML = "";
+
+        if(q.type === "choice") {
+            q.a.forEach((ans, i) => {
+                const btn = document.createElement("button");
+                btn.innerText = ans;
+                btn.onclick = () => check(i);
+                optBox.appendChild(btn);
+            });
+        } else if(q.type === "fill") {
+            zone.innerHTML = `<input type="text" id="ansInput" class="blank-input" placeholder="اكتب الكلمة">
+                              <br><br><button class="start-btn" onclick="checkFill()">تأكيد الإجابة</button>`;
+        }
+    }
+
+    function check(idx) {
+        if(idx === questions[current].c) win();
+        else lose();
+    }
+
+    function checkFill() {
+        const val = document.getElementById("ansInput").value.trim();
+        if(val === questions[current].c) win();
+        else lose();
+    }
+
+    function win() {
+        score++;
+        document.getElementById("s-ok").play();
+        balloons();
+        next();
+    }
+
+    function lose() {
+        document.getElementById("s-no").play();
+        next();
+    }
+
+    function next() {
+        current++;
+        if(current < questions.length) setTimeout(loadQ, 500);
+        else finish();
+    }
+
+    function balloons() {
+        for(let i=0; i<8; i++) {
+            const b = document.createElement("div");
+            b.className = "balloon";
+            b.style.left = Math.random() * 90 + "%";
+            b.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+            document.body.appendChild(b);
+            setTimeout(() => b.remove(), 4000);
+        }
+    }
+
+    function finish() {
+        document.getElementById("quiz-area").style.display = "none";
+        document.getElementById("result-screen").style.display = "block";
+        const msg = document.getElementById("res-msg");
+        const icon = document.getElementById("res-icon");
+        document.getElementById("res-score").innerText = `درجتك هي: ${score} من 20`;
+
+        if(score >= 10) {
+            msg.innerText = "أنت بطل النظام المتميز!";
+            icon.innerText = "🥇";
+            msg.style.color = "var(--green)";
+        } else {
+            msg.innerText = "حاول مرة أخرى يا بطل!";
+            icon.innerText = "📚";
+            msg.style.color = "var(--red)";
+        }
+    }
+</script>
+</body>
+</html>

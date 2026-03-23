@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>مغامرة المعرفة - الصف الأول</title>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    <style>
+        body {
+            margin: 0; font-family: 'Cairo', sans-serif;
+            background: #2e7d32 url('https://img.freepik.com') no-repeat center center fixed;
+            background-size: cover; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden;
+        }
+        .game-card {
+            position: relative; width: 95%; max-width: 900px; height: 550px;
+            background: rgba(255, 255, 255, 0.1); border-radius: 40px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        /* تصميم اللفافة والعنوان */
+        .main-title {
+            background: url('https://img.freepik.com') no-repeat center;
+            background-size: contain; padding: 20px 80px; font-size: 3rem; color: #5d4037; font-weight: 900;
+        }
+        .story-box {
+            background: rgba(255, 255, 255, 0.9); border: 6px solid #8d6e63;
+            padding: 25px; border-radius: 25px; width: 75%; line-height: 1.8;
+            font-size: 1.4rem; color: #2e7d32; z-index: 10; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        /* الشخصيات من وحي الصورة */
+        .char-boy { position: absolute; bottom: 0px; right: 20px; width: 220px; z-index: 5; }
+        .char-girl { position: absolute; bottom: 0px; left: 20px; width: 180px; z-index: 5; }
+        .gold-chest { position: absolute; bottom: 40px; left: 220px; width: 140px; filter: drop-shadow(0 0 10px gold); }
+
+        .btn-green {
+            background: linear-gradient(to bottom, #a2e06b, #76c043);
+            color: white; border: 4px solid white; padding: 15px 70px;
+            font-size: 2.5rem; border-radius: 60px; cursor: pointer;
+            box-shadow: 0 8px 0 #4e8a2a; margin-top: 20px; z-index: 20; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .btn-green:hover { transform: scale(1.05); }
+
+        .feedback {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 40px 80px; border-radius: 30px; font-size: 4rem; z-index: 1000; color: white;
+            border: 10px solid white; box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+        .hidden { display: none; }
+        .option-btn { 
+            background: #2196f3; color: white; border: none; padding: 15px; 
+            margin: 8px; border-radius: 20px; width: 45%; font-size: 1.5rem; 
+            cursor: pointer; box-shadow: 0 5px #1565c0; 
+        }
+    </style>
+</head>
+<body>
+
+<!-- الأصوات: الموسيقى تعمل بشكل متكرر -->
+<audio id="bgMusic" loop>
+    <source src="https://www.soundhelix.com" type="audio/mpeg">
+</audio>
+<audio id="clapSound" src="https://www.myinstants.com"></audio>
+<audio id="wrongSound" src="https://www.myinstants.com"></audio>
+
+<div class="game-card">
+    <!-- شاشة الغلاف (مطابقة للصورة) -->
+    <div id="start-screen" style="text-align: center; width: 100%;">
+        <div class="main-title">مُغَامَرَةُ الْمَعْرِفَةِ</div>
+        
+        <div class="story-box">
+            فِي يَوْمٍ جَمِيلٍ، خَرَجَ بَاسِمٌ مَعَ أُخْتِهِ بَسْمَةَ إِلَى الْبُسْتَانِ.<br>
+            شَاهَدَ بَاسِمٌ فَرَاشَةً زَاهِيَةَ الأَلْوَانِ تَطِيرُ بَيْنَ الأَزْهَارِ.<br>
+            قَالَتْ بَسْمَةُ: مَا أَجْمَلَ رَائِحَةَ الْوَرْدِ فِي هَذَا الصَّبَاحِ!<br>
+            قَطَفَتْ بَسْمَةُ وَرْدَةً حَمْرَاءَ وَأَهْدَتْهَا لِأُمِّهَا الْحَنُونَةِ.<br>
+            عَادَ الطِّفْلَانِ إِلَى الْبَيْتِ وَهُمَا فِي غَايَةِ السَّرُورِ.
+        </div>
+
+        <!-- صور الشخصيات الكرتونية -->
+        <img src="https://cdn-icons-png.flaticon.com" class="char-boy">
+        <img src="https://cdn-icons-png.flaticon.com" class="char-girl">
+        <img src="https://cdn-icons-png.flaticon.com" class="gold-chest">
+
+        <button class="btn-green" onclick="startGame()">ابْدَأ اللَّعِب</button>
+    </div>
+
+    <!-- شاشة الأسئلة -->
+    <div id="quiz-screen" class="hidden" style="background: rgba(255,255,255,0.95); padding: 40px; border-radius: 35px; width: 85%; border: 6px solid #76c043;">
+        <div style="font-size: 1.5rem; color: #8d6e63;">السؤال <span id="q-num">1</span> من 10</div>
+        <h2 id="q-text" style="color: #2e7d32; font-size: 2.2rem; margin: 20px 0;"></h2>
+        <div id="options-area" style="display: flex; flex-wrap: wrap; justify-content: center;"></div>
+        <div id="blank-area" class="hidden">
+            <input type="text" id="ans-input" style="padding:18px; width:70%; font-size:1.6rem; border:3px solid #76c043; border-radius:15px; text-align:center;">
+            <br><br>
+            <button class="btn-green" style="font-size: 1.5rem; padding: 10px 40px;" onclick="checkBlank()">تأكيد الإجابة</button>
+        </div>
+    </div>
+
+    <!-- شاشة النتيجة النهائية -->
+    <div id="result-screen" class="hidden" style="background: white; padding: 50px; border-radius: 40px; text-align: center; border: 8px solid gold;">
+        <h1 id="result-status" style="font-size: 4rem;"></h1>
+        <p id="score-detail" style="font-size: 2rem; color: #5d4037;"></p>
+        <button class="btn-green" onclick="location.reload()">إِعَادَةُ الْمُغَامَرَةِ</button>
+    </div>
+</div>
+
+<!-- التغذية الراجعة -->
+<div id="pop-correct" class="feedback" style="background: #4caf50;">أَحْسَنْتَ! ✅</div>
+<div id="pop-wrong" class="feedback" style="background: #f44336;">حَاوِلْ ثَانِيَةً ❌</div>
+
+<script>
+    let score = 0, current = 0;
+    const questions = [
+        { q: "مَعَ مَنْ خَرَجَ بَاسِمٌ إِلَى الْبُسْتَانِ؟", type: "choice", options: ["مع أبيه", "مع أخته بسمة", "مع صديقه"], a: "مع أخته بسمة" },
+        { q: "مَاذَا شَاهَدَ بَاسِمٌ يَطِيرُ؟", type: "choice", options: ["طائرة", "فراشة", "عصفور"], a: "فراشة" },
+        { q: "هَلْ كَانَ الْبُسْتَانُ جَمِيلاً؟", type: "tf", options: ["صح", "خطأ"], a: "صح" },
+        { q: "أَكْمِل: قَطَفَتْ بَسْمَةُ وَرْدَةً ....", type: "blank", a: "حمراء" },
+        { q: "لِمَنْ أَهْدَتْ بَسْمَةُ الْوَرْدَةَ؟", type: "choice", options: ["لأخيها", "لأمهـا", "للمعلمة"], a: "لأمهـا" },
+        { q: "كَلِمَة (بُسْتَان) تَبْدَأُ بِحَرْفِ (ب).", type: "tf", options: ["صح", "خطأ"], a: "صح" },
+        { q: "مَا لَوْنُ الْفَرَاشَةِ فِي الْقِصَّةِ؟", type: "choice", options: ["بيضاء", "زاهية الألوان", "سوداء"], a: "زاهية الألوان" },
+        { q: "أَكْمِل: شَكَرَ الطِّفْلَانِ اللهَ عَلَى ....", type: "blank", a: "النعمة" },
+        { q: "هَلْ عَادَ الطِّفْلَانِ حَزِينَيْنِ؟", type: "tf", options: ["صح", "خطأ"], a: "خطأ" },
+        { q: "مَا ضِدُّ كَلِمَة (جَمِيلَة)؟", type: "choice", options: ["قبيحة", "كبيرة", "نظيفة"], a: "قبيحة" }
+    ];
+
+    function startGame() {
+        // تشغيل الموسيقى فوراً عند الضغط
+        const music = document.getElementById('bgMusic');
+        music.volume = 0.3; // خفض الصوت قليلاً ليكون مريحاً
+        music.play();
+        
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        showQ();
+    }
+
+    function showQ() {
+        if (current >= questions.length) { showFinal(); return; }
+        const q = questions[current];
+        document.getElementById('q-num').innerText = current + 1;
+        document.getElementById('q-text').innerText = q.q;
+        const optArea = document.getElementById('options-area');
+        const blankArea = document.getElementById('blank-area');
+        optArea.innerHTML = ''; blankArea.classList.add('hidden');
+
+        if (q.type !== 'blank') {
+            q.options.forEach(o => {
+                const b = document.createElement('button');
+                b.className = 'option-btn'; b.innerText = o;
+                b.onclick = () => validate(o);
+                optArea.appendChild(b);
+            });
+        } else { blankArea.classList.remove('hidden'); document.getElementById('ans-input').value = ''; }
+    }
+
+    function validate(ans) {
+        const isCorrect = ans.trim() == questions[current].a;
+        const pop = document.getElementById(isCorrect ? 'pop-correct' : 'pop-wrong');
+        const sound = document.getElementById(isCorrect ? 'clapSound' : 'wrongSound');
+        
+        if(isCorrect) score++;
+        pop.style.display = 'block'; sound.play();
+
+        setTimeout(() => { pop.style.display = 'none'; current++; showQ(); }, 1200);
+    }
+
+    function checkBlank() { validate(document.getElementById('ans-input').value.trim()); }
+
+    function showFinal() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        const status = document.getElementById('result-status');
+        const detail = document.getElementById('score-detail');
+
+        if (score < 5) {
+            status.innerText = "حاول مرة أخرى ⛔";
+            status.style.color = "#f44336";
+            detail.innerText = `درجتك هي ${score} من 10. ركز أكثر في المرة القادمة!`;
+        } else {
+            status.innerText = "أنت رائع! 🎉";
+            status.style.color = "#4caf50";
+            detail.innerText = `أحسنت يا بطل! حصلت على ${score} من 10 نقاط.`;
+            document.getElementById('clapSound').play();
+        }
+    }
+</script>
+</body>
+</html>

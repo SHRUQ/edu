@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لعبة أبطال الإمارات - الصف الأول</title>
+    <style>
+        @import url('https://fonts.googleapis.com');
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #fff9c4;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0; overflow: hidden;
+        }
+        #game-box {
+            background: white; width: 90%; max-width: 500px;
+            padding: 30px; border-radius: 40px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center; border: 8px solid #4caf50;
+            position: relative;
+        }
+        .q-card {
+            background: #e8f5e9; padding: 25px;
+            border-radius: 25px; border: 4px solid #4caf50;
+            margin-bottom: 25px; font-size: 1.8rem; color: #2e7d32;
+        }
+        .btn-opt {
+            background: #64b5f6; color: white; border: none;
+            padding: 15px; margin: 10px; font-size: 1.5rem;
+            border-radius: 20px; cursor: pointer; transition: 0.3s;
+            width: 44%; box-shadow: 0 6px 0 #1e88e5;
+        }
+        #feedback-icon {
+            font-size: 8rem; position: absolute; top: 45%; left: 50%;
+            transform: translate(-50%, -50%); display: none; z-index: 100;
+        }
+        .footer-shurooq {
+            position: absolute; bottom: 10px; right: 20px;
+            font-size: 10px; color: #bbb;
+        }
+        .screen { display: none; }
+        .active { display: block; }
+        .prize-img { font-size: 8rem; display: block; margin: 10px 0; }
+        .balloon {
+            position: absolute; width: 50px; height: 60px;
+            border-radius: 50%; animation: fly 3s linear forwards;
+        }
+        @keyframes fly { to { transform: translateY(-120vh); } }
+    </style>
+</head>
+<body>
+
+    <!-- ملفات الصوت التفاعلية -->
+    <!-- موسيقى الخلفية -->
+    <audio id="music-bg" loop>
+        <source src="https://www.soundhelix.com" type="audio/mpeg">
+    </audio>
+    <!-- صوت الإجابة الصحيحة (تصفيق) -->
+    <audio id="snd-yes">
+        <source src="https://assets.mixkit.co" type="audio/mpeg">
+    </audio>
+    <!-- صوت الإجابة الخاطئة -->
+    <audio id="snd-no">
+        <source src="https://assets.mixkit.co" type="audio/mpeg">
+    </audio>
+
+    <div id="game-box">
+        <div id="feedback-icon"></div>
+
+        <!-- شاشة البداية -->
+        <div id="start-screen" class="screen active">
+            <h1 style="color: #2e7d32;">لعبة الأبطال المبدعين</h1>
+            <p>هيا نتعلم كيف نحمي بيئتنا ووطنا!</p>
+            <button class="btn-opt" style="background: #ff7043; box-shadow: 0 6px 0 #e64a19; width: 80%;" onclick="startPlay()">اضغط هنا للبدء 🔊</button>
+            <div class="footer-shurooq">شروق الحنيطي</div>
+        </div>
+
+        <!-- شاشة الأسئلة -->
+        <div id="play-screen" class="screen">
+            <div id="text-q" class="q-card"></div>
+            <div id="btns-area"></div>
+        </div>
+
+        <!-- شاشة النتيجة -->
+        <div id="end-screen" class="screen">
+            <h2 id="msg-res"></h2>
+            <div id="icon-prize" class="prize-img"></div>
+            <h3 id="txt-score"></h3>
+            <button class="btn-opt" style="width: 80%;" onclick="location.reload()">إعادة المحاولة</button>
+        </div>
+    </div>
+
+    <script>
+        const myData = [
+            { q: "الطبيب يعالجنا لنصبح بخير؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "أضع النفايات في السلة؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "أرسم على طاولة المدرسة؟", a: ["صح ✅", "خطأ ❌"], c: 1 },
+            { q: "إعادة التدوير تنظف الأرض؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "أغلق صنبور الماء بعد الاستعمال؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "دخان السيارات يلوث الهواء؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "أقطف أزهار حديقة المدرسة؟", a: ["صح ✅", "خطأ ❌"], c: 1 },
+            { q: "أضع البلاستيك في صندوق التدوير؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "نزرع الشجر ليكون وطننا أجمل؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "أنا طفل نظيف وأحب الإمارات؟", a: ["صح ✅", "خطأ ❌"], c: 0 }
+        ];
+
+        let index = 0; let myScore = 0;
+
+        function startPlay() {
+            document.getElementById('music-bg').play(); // تشغيل الموسيقى
+            showScr('play-screen');
+            render();
+        }
+
+        function render() {
+            const q = myData[index];
+            document.getElementById('text-q').innerText = q.q;
+            const area = document.getElementById('btns-area');
+            area.innerHTML = '';
+            q.a.forEach((opt, i) => {
+                const b = document.createElement('button');
+                b.className = 'btn-opt';
+                b.innerText = opt;
+                b.onclick = () => checkAns(i);
+                area.appendChild(b);
+            });
+        }
+
+        function checkAns(v) {
+            const icon = document.getElementById('feedback-icon');
+            icon.style.display = 'block';
+            if(v === myData[index].c) {
+                myScore++;
+                icon.innerText = "صح ✅"; icon.style.color = "#4caf50";
+                document.getElementById('snd-yes').play(); // صوت النجاح
+                popBalloons();
+            } else {
+                icon.innerText = "خطأ ❌"; icon.style.color = "#f44336";
+                document.getElementById('snd-no').play(); // صوت الخطأ
+            }
+            setTimeout(() => {
+                icon.style.display = 'none';
+                index++;
+                if(index < myData.length) render();
+                else showFinal();
+            }, 1300);
+        }
+
+        function showFinal() {
+            showScr('end-screen');
+            const msg = document.getElementById('msg-res');
+            const icon = document.getElementById('icon-prize');
+            document.getElementById('txt-score').innerText = `حصلت على ${myScore} من 10`;
+            
+            if(myScore >= 5) {
+                msg.innerText = "أنت بطل رائع وناجح!";
+                icon.innerText = "🏆";
+                msg.style.color = "#2e7d32";
+            } else {
+                msg.innerText = "حاول مرة أخرى يا شجاع!";
+                icon.innerText = "💪";
+                msg.style.color = "#e64a19";
+            }
+        }
+
+        function showScr(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function popBalloons() {
+            for(let i=0; i<10; i++) {
+                const b = document.createElement('div');
+                b.className = 'balloon';
+                b.style.left = Math.random() * 90 + '%';
+                b.style.bottom = '-60px';
+                b.style.background = `hsl(${Math.random()*360}, 80%, 70%)`;
+                document.body.appendChild(b);
+                setTimeout(() => b.remove(), 3000);
+            }
+        }
+    </script>
+</body>
+</html>

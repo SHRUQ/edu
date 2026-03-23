@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>بطل الإحصاء - الصف الأول</title>
+    <style>
+        :root { --green: #4caf50; --red: #f44336; --blue: #2196f3; --yellow: #ffeb3b; }
+        body { font-family: 'Arial', sans-serif; background: #e0f7fa; text-align: center; margin: 0; overflow-x: hidden; }
+        
+        /* شاشة الغلاف */
+        #cover { height: 100vh; background: linear-gradient(135deg, #2196f3, #4caf50); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        .btn-start { padding: 20px 50px; font-size: 2rem; background: #ff9800; color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 8px 0 #e65100; transition: 0.2s; }
+        .btn-start:active { transform: translateY(4px); box-shadow: none; }
+
+        /* منطقة اللعبة */
+        .container { display: none; padding: 20px; max-width: 800px; margin: auto; }
+        .card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 4px solid #bbdefb; position: relative; }
+        
+        /* تصميم علامات الإحصاء (مثل الصورة) */
+        .tally-wrap { display: inline-flex; gap: 10px; vertical-align: middle; }
+        .bundle { position: relative; width: 40px; height: 50px; display: inline-block; }
+        .line { width: 3px; height: 40px; background: #303f9f; position: absolute; border-radius: 2px; }
+        .line:nth-child(1) { left: 5px; }
+        .line:nth-child(2) { left: 15px; }
+        .line:nth-child(3) { left: 25px; }
+        .line:nth-child(4) { left: 35px; }
+        .slash { position: absolute; width: 50px; height: 4px; background: #d32f2f; top: 20px; left: -5px; transform: rotate(-45deg); border-radius: 2px; }
+        .single-line { width: 3px; height: 40px; background: #303f9f; display: inline-block; margin: 0 3px; border-radius: 2px; }
+
+        /* الجداول */
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 1.5rem; }
+        th, td { border: 2px solid #90caf9; padding: 15px; text-align: center; }
+        th { background: #e3f2fd; }
+
+        /* الأزرار والنتيجة */
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .opt-btn { padding: 15px; font-size: 1.3rem; border: none; border-radius: 15px; background: #f5f5f5; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        .opt-btn:hover { background: #e0e0e0; }
+        #feedback { font-size: 2.5rem; font-weight: bold; min-height: 60px; margin-bottom: 10px; }
+        
+        /* البالونات والفقاعات */
+        .balloon { position: absolute; bottom: -100px; width: 50px; height: 70px; border-radius: 50%; animation: floatUp 4s forwards; z-index: 100; }
+        @keyframes floatUp { to { transform: translateY(-120vh); } }
+    </style>
+</head>
+<body>
+
+    <!-- الغلاف -->
+    <div id="cover">
+        <h1 style="font-size: 3.5rem; margin-bottom: 10px;">📊 جداول العلامات والبيانات 🖼️</h1>
+        <p style="font-size: 1.5rem; margin-bottom: 30px;">تعلم الإحصاء والعد بالصور بطريقة ممتعة!</p>
+        <button class="btn-start" onclick="startGame()">ابدأ اللعب الآن</button>
+    </div>
+
+    <!-- اللعبة -->
+    <div id="game-ui" class="container">
+        <div class="card">
+            <div id="feedback"></div>
+            <h2 id="q-text" style="color: #1565c0;">تحميل السؤال...</h2>
+            <div id="table-area"></div>
+            <div id="options-area" class="options"></div>
+            <hr>
+            <div style="font-weight: bold; color: #555;">
+                السؤال: <span id="q-idx">1</span> / 20 | 
+                النقاط: <span id="score-val" style="color: green;">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- المؤثرات الصوتية -->
+    <audio id="sound-correct" src="https://assets.mixkit.co"></audio>
+    <audio id="sound-wrong" src="https://assets.mixkit.co"></audio>
+
+<script>
+    let currentQ = 0;
+    let score = 0;
+
+    // دالة لرسم العلامات مثل الصورة (4 عمودية وواحدة مائلة)
+    function getTallyHTML(num) {
+        let html = '<div class="tally-wrap">';
+        let bundles = Math.floor(num / 5);
+        let ones = num % 5;
+        for(let i=0; i<bundles; i++) {
+            html += `<div class="bundle"><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="slash"></div></div>`;
+        }
+        for(let j=0; j<ones; j++) {
+            html += `<div class="single-line"></div>`;
+        }
+        html += '</div>';
+        return html;
+    }
+
+    // الـ 20 سؤالاً المتنوعة
+    const questions = [
+        { q: "انظر للجدول، كم عدد (الذرة)؟", table: () => `<table><tr><th>المادة</th><th>علامات الإحصاء</th></tr><tr><td>ذرة 🌽</td><td>${getTallyHTML(7)}</td></tr></table>`, options: ["5", "6", "7", "2"], correct: "7" },
+        { q: "كم عدد حبات التفاح في التمثيل بالصور؟", table: () => `<table><tr><th>الصنف</th><th>الصور</th></tr><tr><td>تفاح 🍎</td><td>🍎 🍎 🍎 🍎</td></tr></table>`, options: ["3", "4", "5", "1"], correct: "4" },
+        { q: "أي فاكهة هي الأكثر تفضيلاً (أكبر عدد)؟", table: () => `<table><tr><th>الفاكهة</th><th>العدد</th></tr><tr><td>موز</td><td>9</td></tr><tr><td>عنب</td><td>3</td></tr></table>`, options: ["موز", "عنب", "لا أحد"], correct: "موز" },
+        { q: "ما هي قيمة هذه العلامة (حزمة واحدة)؟", table: () => `<table><tr><td>${getTallyHTML(5)}</td></tr></table>`, options: ["1", "4", "5", "10"], correct: "5" },
+        { q: "كم طفلاً يفضل اللون الأحمر؟", table: () => `<table><tr><th>اللون</th><th>العلامات</th></tr><tr><td>أحمر</td><td>${getTallyHTML(3)}</td></tr><tr><td>أزرق</td><td>${getTallyHTML(5)}</td></tr></table>`, options: ["3", "5", "8", "0"], correct: "3" },
+        { q: "كم يزيد عدد النجوم عن القلوب؟", table: () => `<table><tr><td>⭐</td><td>10</td></tr><tr><td>❤️</td><td>8</td></tr></table>`, options: ["2", "18", "5", "1"], correct: "2" },
+        { q: "ما هو مجموع (2) و (5) في جدول العلامات؟", table: () => `<table><tr><td>${getTallyHTML(2)} + ${getTallyHTML(5)}</td></tr></table>`, options: ["6", "7", "8", "9"], correct: "7" },
+        { q: "أي الأشكال له (4) صور؟", table: () => `<table><tr><td>سيارة 🚗</td><td>🚗 🚗</td></tr><tr><td>باص 🚌</td><td>🚌 🚌 🚌 🚌</td></tr></table>`, options: ["سيارة", "باص"], correct: "باص" },
+        { q: "كم عدد الحيوانات التي تم رصدها (قطط)؟", table: () => `<table><tr><td>قطة 🐱</td><td>${getTallyHTML(11)}</td></tr></table>`, options: ["10", "11", "12", "6"], correct: "11" },
+        { q: "إذا كان الإجمالي 10، فكم علامة نرسم؟", table: () => `<table><tr><td>العدد 10</td><td>؟</td></tr></table>`, options: ["حزمة واحدة", "حزمتان", "3 حزم"], correct: "حزمتان" }
+    ];
+
+    // تكملة الأسئلة آلياً لتصل إلى 20 مع تنويع كامل
+    for(let i=11; i<=20; i++){
+        let randVal = Math.floor(Math.random()*12)+1;
+        questions.push({
+            q: `سؤال ${i}: كم القيمة الموضحة في علامات الإحصاء؟`,
+            table: () => `<table><tr><th>البيانات</th><td>${getTallyHTML(randVal)}</td></tr></table>`,
+            options: [randVal.toString(), (randVal+1).toString(), (randVal-1).toString(), "0"],
+            correct: randVal.toString()
+        });
+    }
+
+    function startGame() {
+        document.getElementById('cover').style.display = 'none';
+        document.getElementById('game-ui').style.display = 'block';
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const qData = questions[currentQ];
+        document.getElementById('q-text').innerText = qData.q;
+        document.getElementById('table-area').innerHTML = qData.table();
+        document.getElementById('q-idx').innerText = currentQ + 1;
+        
+        const optArea = document.getElementById('options-area');
+        optArea.innerHTML = '';
+        qData.options.sort(() => Math.random() - 0.5).forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, btn);
+            optArea.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, btn) {
+        const feedback = document.getElementById('feedback');
+        const correct = questions[currentQ].correct;
+        const allBtns = document.querySelectorAll('.opt-btn');
+        allBtns.forEach(b => b.disabled = true);
+
+        if(selected === correct) {
+            feedback.innerText = "✅ صـــــــح! بطل";
+            feedback.style.color = "green";
+            btn.style.background = "#c8e6c9";
+            document.getElementById('sound-correct').play();
+            score++;
+            document.getElementById('score-val').innerText = score;
+            spawnBalloons();
+        } else {
+            feedback.innerText = "❌ خـــــــطأ! حاول ثانية";
+            feedback.style.color = "red";
+            btn.style.background = "#ffcdd2";
+            document.getElementById('sound-wrong').play();
+        }
+
+        setTimeout(() => {
+            feedback.innerText = "";
+            currentQ++;
+            if(currentQ < 20) showQuestion();
+            else finishGame();
+        }, 2000);
+    }
+
+    function spawnBalloons() {
+        for(let i=0; i<15; i++) {
+            const b = document.createElement('div');
+            b.className = 'balloon';
+            b.style.left = Math.random() * 100 + "vw";
+            b.style.backgroundColor = `hsl(${Math.random() * 360}, 80%, 60%)`;
+            document.body.appendChild(b);
+            setTimeout(() => b.remove(), 4000);
+        }
+    }
+
+    function finishGame() {
+        document.getElementById('game-ui').innerHTML = `
+            <div class='card'>
+                <h1>🏆 انتهت الرحلة يا بطل! 🏆</h1>
+                <h2 style='color:#1565c0'>نتيجتك النهائية: ${score} من 20</h2>
+                <p>لقد تعلمت اليوم كيف تعد وتنظم البيانات باحتراف!</p>
+                <button class='btn-start' onclick='location.reload()'>العب مرة أخرى 🔄</button>
+            </div>`;
+    }
+</script>
+</body>
+</html>

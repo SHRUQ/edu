@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة أحب مخلوقات ربي</title>
+    <style>
+        @import url('https://fonts.googleapis.com');
+        body { font-family: 'Cairo', sans-serif; background: #e3f2fd; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        #game-box { background: white; padding: 30px; border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 450px; border: 8px solid #4caf50; }
+        .q-text { font-size: 22px; margin-bottom: 25px; color: #333; min-height: 80px; }
+        .btn-group { display: flex; gap: 20px; justify-content: center; }
+        button { padding: 15px 40px; font-size: 20px; cursor: pointer; border: none; border-radius: 50px; color: white; transition: 0.2s; font-family: 'Cairo'; }
+        .yes { background: #4caf50; } .no { background: #f44336; }
+        button:hover { transform: scale(1.1); }
+        #feedback { font-size: 24px; margin-top: 20px; height: 40px; font-weight: bold; }
+        #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+        .start-btn { background: #ff9800; padding: 20px 50px; font-size: 30px; }
+    </style>
+</head>
+<body>
+
+<div id="start-screen">
+    <h1>جاهز يا بطل؟ 🌟</h1>
+    <button class="start-btn" onclick="startGame()">ابدأ اللعب الآن 🔊</button>
+</div>
+
+<div id="game-box">
+    <div id="quiz">
+        <h2 style="color: #2e7d32;">أُحِبُّ مَخْلوقَاتِ رَبِّي 🌿</h2>
+        <p id="q-num" style="color: #666;">السؤال 1 من 15</p>
+        <div class="q-text" id="question">سيظهر السؤال هنا...</div>
+        <div class="btn-group">
+            <button class="yes" onclick="check(true)">صح ✅</button>
+            <button class="no" onclick="check(false)">خطأ ❌</button>
+        </div>
+        <div id="feedback"></div>
+    </div>
+    <div id="result" style="display:none;">
+        <h1 style="font-size: 50px;">🎉</h1>
+        <h2>انتهت الأسئلة!</h2>
+        <p style="font-size: 24px;">لقد حصلت على: <span id="final-score"></span> من 15</p>
+        <button class="yes" onclick="location.reload()" style="background:#2196f3">إعادة 🔄</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {q: "الله تعالى هو الذي خلق النحلة وعلمها صنع العسل.", a: true},
+        {q: "نحب الأزهار فقط لأن شكلها جميل ولا نحب رائحتها.", a: false},
+        {q: "العسل الذي تصنعه النحلة مفيد جداً لجسمنا.", a: true},
+        {q: "خلق الله الحيوانات لكي نستفيد منها في حياتنا.", a: true},
+        {q: "من الرفق بالحيوان أن نضربه إذا كنا غاضبين.", a: false},
+        {q: "نأخذ الحليب واللحم المفيد من الأبقار والأغنام.", a: true},
+        {q: "الخيول من المخلوقات التي تساعد الإنسان في التنقل.", a: true},
+        {q: "يجب علينا المحافظة على نظافة الحدائق العامة.", a: true},
+        {q: "يجوز لنا كسر أغصان الأشجار في حديقة الحيوان.", a: false},
+        {q: "الطيور من مخلوقات الله التي تزين السماء بأصواتها.", a: true},
+        {q: "نورة تحب النحل لأنه يصنع لنا العسل الشهي.", a: true},
+        {q: "الرفق بالحيوان ورعايته يرضي الله تعالى.", a: true},
+        {q: "النباتات لا تحتاج إلى الماء لكي تعيش.", a: false},
+        {q: "التزم بالنظام والهدوء عندما أزور حديقة الحيوان.", a: true},
+        {q: "المسلم يشكر الله دائماً على نعمة المخلوقات.", a: true}
+    ];
+
+    let current = 0, score = 0;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // وظيفة إصدار صوت يشبه المنبه/التنبيه الاحتفالي
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if (type === 'correct') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        }
+    }
+
+    function startGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        audioCtx.resume();
+        next();
+    }
+
+    function next() {
+        if (current < questions.length) {
+            document.getElementById('question').innerText = questions[current].q;
+            document.getElementById('q-num').innerText = `السؤال ${current + 1} من 15`;
+            document.getElementById('feedback').innerText = "";
+        } else {
+            document.getElementById('quiz').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('final-score').innerText = score;
+        }
+    }
+
+    function check(ans) {
+        const f = document.getElementById('feedback');
+        if (ans === questions[current].a) {
+            f.innerText = "بطل! صح ⭐"; f.style.color = "green";
+            score++; playSound('correct');
+        } else {
+            f.innerText = "خطأ يا بطل.. فكر ❌"; f.style.color = "red";
+            playSound('wrong');
+        }
+        current++;
+        setTimeout(next, 1200);
+    }
+</script>
+</body>
+</html>

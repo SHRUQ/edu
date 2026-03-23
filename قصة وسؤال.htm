@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>مغامرة المعرفة - الصف الأول</title>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    <style>
+        :root { --main-green: #76c043; --dark-green: #4e8a2a; --paper: #fff5d7; }
+        body {
+            margin: 0; font-family: 'Cairo', sans-serif;
+            background: url('https://img.freepik.com') no-repeat center center fixed;
+            background-size: cover; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden;
+        }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.2); z-index: 1; }
+        .game-container {
+            position: relative; z-index: 2; width: 90%; max-width: 800px;
+            background: rgba(255, 255, 255, 0.9); border: 10px solid #8d6e63; border-radius: 40px;
+            padding: 30px; text-align: center; box-shadow: 0 15px 0 #5d4037;
+        }
+        /* تصميم اللفافة مثل الصورة */
+        .story-scroll {
+            background: var(--paper); border: 2px solid #d4a373; padding: 25px;
+            border-radius: 15px; margin: 20px 0; font-size: 1.4rem; line-height: 1.8;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.1); color: #4e342e; position: relative;
+        }
+        .story-scroll::before, .story-scroll::after {
+            content: "📜"; position: absolute; font-size: 2rem; top: -15px;
+        }
+        .story-scroll::before { right: 10px; } .story-scroll::after { left: 10px; }
+
+        /* الأزرار الخضراء مثل الصورة */
+        .btn-green {
+            background: linear-gradient(to bottom, #a2e06b, var(--main-green));
+            color: white; border: 3px solid #fff; padding: 15px 45px;
+            font-size: 2rem; border-radius: 50px; cursor: pointer;
+            box-shadow: 0 6px 0 var(--dark-green); transition: 0.2s; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .btn-green:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--dark-green); }
+
+        .option-btn {
+            background: #2196f3; color: white; border: none; padding: 12px; margin: 8px;
+            border-radius: 15px; font-size: 1.3rem; width: 45%; cursor: pointer; box-shadow: 0 4px #1565c0;
+        }
+        .feedback {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 30px 60px; border-radius: 25px; color: white; font-size: 3.5rem; z-index: 100;
+            border: 8px solid white; text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        }
+        .correct { background: #4caf50; } .wrong { background: #f44336; }
+        .hidden { display: none; }
+        #score-label { font-size: 1.5rem; color: #5d4037; font-weight: bold; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="overlay"></div>
+
+<!-- الأصوات -->
+<audio id="bgMusic" loop src="https://www.soundhelix.com"></audio>
+<audio id="clap" src="https://www.myinstants.com"></audio>
+<audio id="fail" src="https://www.myinstants.com"></audio>
+
+<div class="game-container">
+    <!-- صفحة الغلاف والقصة -->
+    <div id="start-screen">
+        <h1 style="color: #5d4037; font-size: 3rem; margin: 0;">مُغَامَرَةُ الْمَعْرِفَةِ</h1>
+        <div class="story-scroll">
+            فِي بَيْتِنَا حَدِيقَةٌ جَمِيلَةٌ فِيهَا أَشْجَارٌ كَثِيرَةٌ.<br>
+            يَلْعَبُ فِيهَا أَحْمَدُ مَعَ صَدِيقِهِ خَالِدٍ كُلَّ يَوْمٍ.<br>
+            قَطَفَ خَالِدٌ تُفَّاحَةً حَمْرَاءَ لَذِيذَةً مِنَ الشَّجَرَةِ.<br>
+            شَكَرَ خَالِدٌ اللهَ عَلَى الثِّمَارِ الطَّيِّبَةِ فِي الحَدِيقَةِ.<br>
+            هَيَّا نُسَاعِدُهُمْ فِي حَلِّ هَذِهِ الأَسْئِلَةِ الجَمِيلَةِ.
+        </div>
+        <button class="btn-green" onclick="startGame()">ابْدَأ اللَّعِب</button>
+    </div>
+
+    <!-- واجهة الأسئلة -->
+    <div id="quiz-screen" class="hidden">
+        <div id="score-label">السؤال: <span id="q-num">1</span> / 10</div>
+        <h2 id="q-text" style="font-size: 2.2rem; color: #2e7d32; min-height: 80px;"></h2>
+        
+        <div id="options-area" style="display: flex; flex-wrap: wrap; justify-content: center;"></div>
+        
+        <div id="blank-area" class="hidden">
+            <input type="text" id="ans-input" placeholder="اكتب الكلمة هنا..." style="padding:15px; font-size:1.5rem; width:80%; border-radius:15px; border:3px solid var(--main-green); text-align:center;">
+            <br><br>
+            <button class="btn-green" style="font-size: 1.5rem;" onclick="checkBlank()">تأكيد</button>
+        </div>
+    </div>
+
+    <!-- واجهة النتيجة النهائية -->
+    <div id="result-screen" class="hidden">
+        <h1 id="result-status" style="font-size: 3.5rem;"></h1>
+        <p id="final-info" style="font-size: 2rem; color: #5d4037;"></p>
+        <button class="btn-green" onclick="location.reload()">الْعَبْ مَرَّةً أُخْرَى</button>
+    </div>
+</div>
+
+<!-- رسائل الصح والخطأ -->
+<div id="pop-correct" class="feedback correct">صَحّ ✅</div>
+<div id="pop-wrong" class="feedback wrong">خَطَأ ❌</div>
+
+<script>
+    let current = 0, score = 0;
+    const questions = [
+        { q: "أَيْنَ يَلْعَبُ أَحْمَدُ وَخَالِدٌ؟", type: "choice", options: ["في المدرسة", "في الحديقة", "في الشارع"], a: "في الحديقة" },
+        { q: "مَاذَا قَطَفَ خَالِدٌ مِنَ الشَّجَرَةِ؟", type: "choice", options: ["تفاحة", "موزة", "وردة"], a: "تفاحة" },
+        { q: "هَلْ كَانَتِ التُّفَّاحَةُ لَوْنُهَا أَصْفَر؟", type: "tf", options: ["صح", "خطأ"], a: "خطأ" },
+        { q: "أَكْمِل: فِي بَيْتِنَا .... جَمِيلَةٌ.", type: "blank", a: "حديقة" },
+        { q: "مَنْ لَعِبَ مَعَ أَحْمَدَ؟", type: "choice", options: ["خالد", "محمد", "ياسر"], a: "خالد" },
+        { q: "هَلْ شَكَرَ خَالِدٌ اللهَ؟", type: "tf", options: ["صح", "خطأ"], a: "صح" },
+        { q: "كَلِمَة (شَجَرَة) تَنْتَهِي بِتَاء مَرْبُوطَة (ة).", type: "tf", options: ["صح", "خطأ"], a: "صح" },
+        { q: "أَكْمِل: قَطَفَ خَالِدٌ تُفَّاحَةً ....", type: "blank", a: "حمراء" },
+        { q: "الحديقة فِيهَا أَشْجَارٌ كَثِيرَةٌ.", type: "tf", options: ["صح", "خطأ"], a: "صح" },
+        { q: "مَا ضِدُّ كَلِمَة (جَمِيلَة)؟", type: "choice", options: ["قبيحة", "كبيرة", "طويلة"], a: "قبيحة" }
+    ];
+
+    function startGame() {
+        document.getElementById('bgMusic').play();
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        showQ();
+    }
+
+    function showQ() {
+        if (current >= questions.length) { showFinal(); return; }
+        const q = questions[current];
+        document.getElementById('q-num').innerText = current + 1;
+        document.getElementById('q-text').innerText = q.q;
+        const optArea = document.getElementById('options-area');
+        const blankArea = document.getElementById('blank-area');
+        optArea.innerHTML = ''; blankArea.classList.add('hidden');
+
+        if (q.type !== 'blank') {
+            q.options.forEach(o => {
+                const b = document.createElement('button');
+                b.className = 'option-btn'; b.innerText = o;
+                b.onclick = () => validate(o);
+                optArea.appendChild(b);
+            });
+        } else { blankArea.classList.remove('hidden'); document.getElementById('ans-input').value = ''; }
+    }
+
+    function validate(ans) {
+        const isCorrect = ans.trim() == questions[current].a;
+        const pop = document.getElementById(isCorrect ? 'pop-correct' : 'pop-wrong');
+        const sound = document.getElementById(isCorrect ? 'clap' : 'fail');
+        
+        if(isCorrect) score++;
+        pop.style.display = 'block'; sound.play();
+
+        setTimeout(() => {
+            pop.style.display = 'none';
+            current++;
+            showQ();
+        }, 1100);
+    }
+
+    function checkBlank() { validate(document.getElementById('ans-input').value.trim()); }
+
+    function showFinal() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        
+        const statusTxt = document.getElementById('result-status');
+        const infoTxt = document.getElementById('final-info');
+
+        if (score < 5) {
+            statusTxt.innerText = "حاول مرة أخرى ⛔";
+            statusTxt.style.color = "#f44336";
+            infoTxt.innerText = `لقد حصلت على ${score} من 10. يمكنك فعلها بشكل أفضل!`;
+        } else {
+            statusTxt.innerText = "أنت رائع! 🎉";
+            statusTxt.style.color = "#4caf50";
+            infoTxt.innerText = `مبارك! لقد حصلت على ${score} من 10 نقاط.`;
+            document.getElementById('clap').play();
+        }
+    }
+</script>
+</body>
+</html>

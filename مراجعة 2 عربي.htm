@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة بطل القراءة - الصف الأول 🎈</title>
+    <style>
+        :root { --pink: #FF85A1; --yellow: #FFEA00; --blue: #4CC9F0; --green: #72EFDD; --purple: #B79CED; }
+        body { font-family: 'Cairo', sans-serif; background: var(--purple); margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+        
+        .game-world { width: 95%; max-width: 550px; background: white; border-radius: 40px; padding: 25px; border: 8px solid var(--pink); box-shadow: 0 15px 0 #9d81d1; text-align: center; position: relative; }
+        
+        h1 { color: var(--pink); font-size: 32px; text-shadow: 2px 2px #ffc1cf; }
+        h2 { color: #444; font-size: 24px; margin-top: 10px; }
+
+        /* الأزرار الكرتونية */
+        .btn { padding: 18px 30px; font-size: 22px; cursor: pointer; border-radius: 25px; border: none; margin: 10px; font-weight: bold; transition: 0.2s; color: white; }
+        .btn-start { background: var(--pink); box-shadow: 0 6px #ff5c81; width: 80%; }
+        .btn-opt { width: 100%; background: var(--blue); box-shadow: 0 6px #37b0d8; margin: 8px 0; }
+        .btn-opt:hover { transform: scale(1.02); background: #3ab7dd; }
+        
+        /* إشارات الصح والخطأ */
+        #sign { font-size: 100px; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 100; pointer-events: none; opacity: 0; }
+        .pop { animation: popSign 0.8s ease; }
+        @keyframes popSign { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
+
+        .score-pill { background: var(--yellow); padding: 8px 20px; border-radius: 50px; font-size: 18px; color: #555; display: inline-block; border: 3px solid #f2df00; margin-bottom: 15px; }
+        input { width: 80%; padding: 15px; border-radius: 20px; border: 4px solid var(--green); font-size: 24px; text-align: center; outline: none; }
+        .review-card { background: #f0fdf4; border-radius: 20px; padding: 15px; text-align: right; border-right: 10px solid var(--green); margin: 15px 0; }
+        .hidden { display: none; }
+    </style>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+</head>
+<body>
+
+<div class="game-world">
+    <div id="sign"></div>
+
+    <!-- صفحة المراجعة (للصف الأول) -->
+    <div id="scr-review">
+        <h1>مراجعة الأبطال 🍎</h1>
+        <div class="review-card">
+            <p>🎈 <b>مد الألف:</b> صـوت طويل (بـا - نـا).</p>
+            <p>🎈 <b>حرف اللام:</b> (لـ) ليمون، (ـل) نخل.</p>
+            <p>🎈 <b>العكس:</b> كبير ↔️ صغير.</p>
+            <p>🎈 <b>الحركة:</b> سَـ (فتحة)، لُـ (ضمة)، رِ (كسرة).</p>
+        </div>
+        <button class="btn btn-start" onclick="go()">هيا بنا! 🚀</button>
+    </div>
+
+    <!-- صفحة اللعب -->
+    <div id="scr-game" class="hidden">
+        <div class="score-pill">نجماتك: <span id="stars">0</span> ⭐ | سؤال: <span id="q-num">1</span></div>
+        <h2 id="q-txt">...</h2>
+        <div id="opts"></div>
+        <div id="blank-ui" class="hidden">
+            <input type="text" id="ans-in" placeholder="؟">
+            <br>
+            <button class="btn btn-start" onclick="checkIn()">أجب ✅</button>
+        </div>
+    </div>
+
+    <!-- صفحة الفوز -->
+    <div id="scr-win" class="hidden">
+        <h1 style="font-size: 50px;">ممتاز! 🎊</h1>
+        <h2 id="final-msg"></h2>
+        <button class="btn btn-start" onclick="location.reload()">العب مرة ثانية 🔄</button>
+    </div>
+</div>
+
+<!-- أصوات تفاعلية -->
+<audio id="m-bg" loop src="https://www.soundjay.com"></audio>
+<audio id="s-yes" src="https://www.myinstants.com"></audio>
+<audio id="s-no" src="https://www.myinstants.com"></audio>
+<audio id="s-cheer" src="https://www.myinstants.com"></audio>
+
+<script>
+const data = [
+    {q: "كلمة 'بـاب' فيها مد بـ:", t: "c", o: ["الألف", "الواو", "الياء"], a: 0},
+    {q: "ما ضد كلمة 'طويل'؟", t: "c", o: ["جميل", "قصير", "سريع"], a: 1},
+    {q: "صوت حرف (لُ) هو لـ بالضمة.", t: "b", o: ["صح ✅", "خطأ ❌"], a: 0},
+    {q: "أكمل الكلمة بمد: تـ....ـت (بمعنى فاكهة)", t: "i", a: "و"},
+    {q: "أين حرف اللام في كلمة 'لحم'؟", t: "c", o: ["أول الكلمة", "آخر الكلمة"], a: 0},
+    {q: "كلمة 'فيل' فيها مد بالياء.", t: "b", o: ["صح ✅", "خطأ ❌"], a: 0},
+    {q: "ضد كلمة 'فرحان' هو:", t: "c", o: ["سعيد", "حزين", "قوي"], a: 1},
+    {q: "اكتب الحرف الناقص: ....ـبـن", t: "i", a: "ل"},
+    {q: "الفتحة توضع تحت الحرف.", t: "b", o: ["صح", "خطأ"], a: 1},
+    {q: "كلمة 'مـوز' تبدأ بحركة:", t: "c", o: ["فتحة َ", "ضمة ُ", "كسرة ِ"], a: 0},
+    {q: "ما ضد كلمة 'ساخن'؟", t: "i", a: "بارد"},
+    {q: "كلمة 'بصل' تنتهي بحرف اللام.", t: "b", o: ["صح", "خطأ"], a: 0},
+    {q: "حرف المد في 'حـوت' هو:", t: "c", o: ["أ", "و", "ي"], a: 1},
+    {q: "صوت (لِ) هو لام بالكسرة.", t: "b", o: ["صح", "خطأ"], a: 0},
+    {q: "أكمل: الأسد حيوان ....", t: "i", a: "قوي"},
+    {q: "كلمة 'تاج' فيها مد بالألف.", t: "b", o: ["صح", "خطأ"], a: 0},
+    {q: "ضد كلمة 'ليل' هو:", t: "c", o: ["قمر", "نهار", "نوم"], a: 1},
+    {q: "أي كلمة فيها حرف لام؟", t: "c", o: ["بيت", "كلب", "نور"], a: 1},
+    {q: "اكتب ضد كلمة 'قريب':", t: "i", a: "بعيد"},
+    {q: "المد في كلمة 'صديق' هو مد ياء.", t: "b", o: ["صح", "خطأ"], a: 0}
+];
+
+let idx = 0, score = 0;
+
+function go() {
+    document.getElementById('scr-review').classList.add('hidden');
+    document.getElementById('scr-game').classList.remove('hidden');
+    document.getElementById('m-bg').play();
+    draw();
+}
+
+function draw() {
+    const q = data[idx];
+    document.getElementById('q-num').innerText = idx + 1;
+    document.getElementById('q-txt').innerText = q.q;
+    const oBox = document.getElementById('opts');
+    const iBox = document.getElementById('blank-ui');
+    oBox.innerHTML = '';
+    
+    if (q.t !== 'i') {
+        iBox.classList.add('hidden');
+        q.o.forEach((opt, i) => {
+            const b = document.createElement('button');
+            b.innerText = opt; b.className = 'btn btn-opt';
+            b.onclick = () => check(i);
+            oBox.appendChild(b);
+        });
+    } else {
+        iBox.classList.remove('hidden');
+        document.getElementById('ans-in').value = '';
+    }
+}
+
+function check(i) {
+    if (i === data[idx].a) feed(true);
+    else feed(false);
+}
+
+function checkIn() {
+    const val = document.getElementById('ans-in').value.trim();
+    if (val === data[idx].a) feed(true);
+    else feed(false);
+}
+
+function feed(isCorrect) {
+    const s = document.getElementById('sign');
+    if (isCorrect) {
+        score++;
+        s.innerText = "✅";
+        s.style.color = "#2ecc71";
+        document.getElementById('s-yes').play();
+    } else {
+        s.innerText = "❌";
+        s.style.color = "#e74c3c";
+        document.getElementById('s-no').play();
+    }
+    s.classList.remove('pop');
+    void s.offsetWidth;
+    s.classList.add('pop');
+    
+    document.getElementById('stars').innerText = score;
+    setTimeout(() => {
+        idx++;
+        if (idx < data.length) draw();
+        else end();
+    }, 1000);
+}
+
+function end() {
+    document.getElementById('scr-game').classList.add('hidden');
+    document.getElementById('scr-win').classList.remove('hidden');
+    document.getElementById('final-msg').innerText = `أنت بطل! جمعت ${score} من 20 نجمة ⭐`;
+    document.getElementById('s-cheer').play();
+}
+</script>
+</body>
+</html>

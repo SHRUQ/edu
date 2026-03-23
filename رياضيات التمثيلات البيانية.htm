@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تحدي الأبطال: جداول وصور</title>
+    <style>
+        :root { --primary: #673ab7; --accent: #ff4081; --bg: #fff9c4; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; text-align: center; overflow-x: hidden; }
+        
+        /* الغلاف */
+        #cover { height: 100vh; background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://img.freepik.com'); background-size: cover; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        .start-btn { padding: 18px 45px; font-size: 1.8rem; background: var(--accent); color: white; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 6px 0 #c2185b; transition: 0.2s; font-weight: bold; }
+        .start-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* اللعبة */
+        .container { display: none; padding: 15px; max-width: 750px; margin: auto; }
+        .card { background: white; border-radius: 25px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); border: 6px solid #b39ddb; position: relative; }
+        
+        /* العلامات الإحصائية الاحترافية */
+        .tally-box { display: inline-flex; gap: 8px; vertical-align: middle; }
+        .bundle { position: relative; width: 35px; height: 45px; display: inline-block; }
+        .v-line { width: 3px; height: 35px; background: #283593; position: absolute; border-radius: 2px; }
+        .v-line:nth-child(1) { left: 4px; }
+        .v-line:nth-child(2) { left: 12px; }
+        .v-line:nth-child(3) { left: 20px; }
+        .v-line:nth-child(4) { left: 28px; }
+        .slash { position: absolute; width: 42px; height: 4px; background: #e91e63; top: 15px; left: -2px; transform: rotate(-45deg); border-radius: 2px; }
+        .single { width: 3px; height: 35px; background: #283593; display: inline-block; margin: 0 3px; border-radius: 2px; }
+
+        /* الجداول */
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 1.3rem; }
+        th, td { border: 2px solid #9575cd; padding: 12px; }
+        th { background: #d1c4e9; color: #311b92; }
+
+        /* الأزرار والنتائج */
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .opt-btn { padding: 14px; font-size: 1.2rem; border: 2px solid #ddd; border-radius: 12px; background: #fdfdfd; cursor: pointer; transition: 0.2s; font-weight: bold; }
+        .opt-btn:hover { background: #f3e5f5; border-color: #9575cd; }
+        #feedback { font-size: 2.2rem; font-weight: bold; min-height: 55px; margin-bottom: 5px; }
+        
+        /* بالونات النجاح */
+        .balloon { position: absolute; bottom: -100px; width: 45px; height: 60px; border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; animation: float 3.5s forwards; }
+        @keyframes float { to { transform: translateY(-120vh) rotate(20deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="cover">
+        <h1 style="font-size: 3rem;">🌟 عبقري البيانات الصغير 🌟</h1>
+        <p style="font-size: 1.4rem;">استعد لـ 20 سؤالاً ذكياً وممتعاً!</p>
+        <button class="start-btn" onclick="start()">هيا نبدأ! 🚀</button>
+    </div>
+
+    <div id="game-ui" class="container">
+        <div class="card">
+            <div id="feedback"></div>
+            <h2 id="q-text" style="color: #4527a0;">جاري التحميل...</h2>
+            <div id="table-area"></div>
+            <div id="options-area" class="options"></div>
+            <div style="margin-top:20px; border-top: 2px solid #eee; padding-top: 10px;">
+                <b>السؤال: <span id="q-idx">1</span> / 20</b> | 
+                <b>نقاطك: <span id="score-val" style="color: #e91e63;">0</span></b>
+            </div>
+        </div>
+    </div>
+
+    <audio id="s-yes" src="https://assets.mixkit.co"></audio>
+    <audio id="s-no" src="https://assets.mixkit.co"></audio>
+
+<script>
+    let current = 0;
+    let score = 0;
+
+    // رسم العلامات برمجياً لضمان الدقة
+    function drawTally(n) {
+        let h = '<div class="tally-box">';
+        let bundles = Math.floor(n / 5);
+        let rem = n % 5;
+        for(let i=0; i<bundles; i++) h += `<div class="bundle"><div class="v-line"></div><div class="v-line"></div><div class="v-line"></div><div class="v-line"></div><div class="slash"></div></div>`;
+        for(let j=0; j<rem; j++) h += `<div class="single"></div>`;
+        return h + '</div>';
+    }
+
+    const questions = [
+        { q: "ما هو عدد الأيام المشمسة في هذا الأسبوع؟", table: () => `<table><tr><th>الطقس</th><th>العلامات</th></tr><tr><td>شمس ☀️</td><td>${drawTally(5)}</td></tr><tr><td>مطر 🌧️</td><td>${drawTally(2)}</td></tr></table>`, options: ["5", "2", "7", "3"], correct: "5" },
+        { q: "كم طفلاً يفضل القطة (🐱)؟", table: () => `<table><tr><th>الحيوان</th><th>الصور</th></tr><tr><td>قطة 🐱</td><td>🐱 🐱 🐱</td></tr><tr><td>كلب 🐶</td><td>🐶</td></tr></table>`, options: ["1", "2", "3", "4"], correct: "3" },
+        { q: "ما هو الشيء الأقل عدداً في الجدول؟", table: () => `<table><tr><th>الأداة</th><th>العدد</th></tr><tr><td>قلم ✏️</td><td>10</td></tr><tr><td>ممحاة 🧼</td><td>4</td></tr></table>`, options: ["قلم", "ممحاة", "كلاهما"], correct: "ممحاة" },
+        { q: "كم مجموع كل السيارات في الجدول؟", table: () => `<table><tr><th>السيارة</th><th>الصور</th></tr><tr><td>حمراء</td><td>🚗 🚗</td></tr><tr><td>زرقاء</td><td>🚗 🚗 🚗</td></tr></table>`, options: ["2", "3", "5", "6"], correct: "5" },
+        { q: "ما قيمة هذه العلامات الإحصائية؟", table: () => `<table><tr><td>${drawTally(9)}</td></tr></table>`, options: ["4", "5", "9", "10"], correct: "9" },
+        { q: "أي طعام يفضله 6 طلاب؟", table: () => `<table><tr><th>الطعام</th><th>العلامات</th></tr><tr><td>بيتزا 🍕</td><td>${drawTally(6)}</td></tr><tr><td>برجر 🍔</td><td>${drawTally(4)}</td></tr></table>`, options: ["بيتزا", "برجر", "الاثنين"], correct: "بيتزا" },
+        { q: "كم يزيد عدد النجوم عن السحب؟", table: () => `<table><tr><td>⭐</td><td>5</td></tr><tr><td>☁️</td><td>3</td></tr></table>`, options: ["8", "2", "5", "3"], correct: "2" },
+        { q: "إذا كان لدينا حزمتان كاملتان (5+5)، كم المجموع؟", table: () => `<table><tr><td>${drawTally(5)} ${drawTally(5)}</td></tr></table>`, options: ["5", "10", "15", "20"], correct: "10" },
+        { q: "كم عدد البالونات الزرقاء؟", table: () => `<table><tr><td>🎈 أزرق</td><td>🎈 🎈 🎈 🎈 🎈 🎈</td></tr></table>`, options: ["4", "5", "6", "7"], correct: "6" },
+        { q: "ما هو العدد المفقود ليصبح المجموع 5؟ (أرنب 2، قطة ؟)", table: () => `<table><tr><td>أرنب</td><td>2</td></tr><tr><td>قطة</td><td>؟</td></tr></table>`, options: ["1", "2", "3", "4"], correct: "3" },
+        
+        // أسئلة 11-20 (منوعة وصور مختلفة)
+        { q: "كم عدد الفراشات الملونة؟", table: () => `<table><tr><td>🦋</td><td>${drawTally(8)}</td></tr></table>`, options: ["7", "8", "9", "10"], correct: "8" },
+        { q: "أي وسيلة نقل لها 12 صوتاً؟", table: () => `<table><tr><td>باص 🚌</td><td>${drawTally(12)}</td></tr><tr><td>طائرة ✈️</td><td>${drawTally(5)}</td></tr></table>`, options: ["باص", "طائرة"], correct: "باص" },
+        { q: "ما هو الشكل الأكثر تكراراً؟", table: () => `<table><tr><td>🔴</td><td>5</td></tr><tr><td>🔵</td><td>8</td></tr><tr><td>🟢</td><td>2</td></tr></table>`, options: ["أحمر", "أزرق", "أخضر"], correct: "أزرق" },
+        { q: "كم عدد الأسماك في الحوض؟", table: () => `<table><tr><td>🐠</td><td>🐠 🐠 🐠 🐠 🐠</td></tr></table>`, options: ["3", "4", "5", "6"], correct: "5" },
+        { q: "إذا كان المجموع 4، أي علامة هي الصحيحة؟", table: () => `<table><tr><td>؟</td><td>العدد 4</td></tr></table>`, options: [drawTally(4), drawTally(5), drawTally(2)], correct: drawTally(4) },
+        { q: "كم ينقص عدد الأقلام عن 10؟ (الأقلام 7)", table: () => `<table><tr><td>✏️</td><td>7</td></tr></table>`, options: ["1", "2", "3", "4"], correct: "3" },
+        { q: "ما هو مجموع (3 أصوات) و (حزمة واحدة)؟", table: () => `<table><tr><td>3 + ${drawTally(5)}</td></tr></table>`, options: ["5", "8", "9", "3"], correct: "8" },
+        { q: "كم عدد الوجوه الضاحكة؟", table: () => `<table><tr><td>😊</td><td>😊 😊 😊 😊 😊 😊 😊</td></tr></table>`, options: ["6", "7", "8", "9"], correct: "7" },
+        { q: "أي يوم كان فيه أمطار أكثر؟", table: () => `<table><tr><td>الأحد</td><td>${drawTally(2)}</td></tr><tr><td>الاثنين</td><td>${drawTally(4)}</td></tr></table>`, options: ["الأحد", "الاثنين"], correct: "الاثنين" },
+        { q: "السؤال الأخير: كم عدد كل الأشكال في هذا الجدول؟", table: () => `<table><tr><td>🍎</td><td>2</td></tr><tr><td>🍏</td><td>2</td></tr></table>`, options: ["2", "3", "4", "5"], correct: "4" }
+    ];
+
+    function start() {
+        document.getElementById('cover').style.display = 'none';
+        document.getElementById('game-ui').style.display = 'block';
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const d = questions[current];
+        document.getElementById('q-text').innerText = d.q;
+        document.getElementById('table-area').innerHTML = d.table();
+        document.getElementById('q-idx').innerText = current + 1;
+        
+        const opts = document.getElementById('options-area');
+        opts.innerHTML = '';
+        d.options.forEach(o => {
+            const b = document.createElement('button');
+            b.className = 'opt-btn';
+            b.innerHTML = o; // استخدمنا innerHTML لدعم عرض العلامات داخل الأزرار في السؤال 15
+            b.onclick = () => check(o, b);
+            opts.appendChild(b);
+        });
+    }
+
+    function check(choice, btn) {
+        const feed = document.getElementById('feedback');
+        const correct = questions[current].correct;
+        document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+
+        if(choice === correct) {
+            feed.innerText = "⭐ صح! أنت ذكي جداً ⭐";
+            feed.style.color = "#4caf50";
+            btn.style.background = "#c8e6c9";
+            document.getElementById('s-yes').play();
+            score++;
+            document.getElementById('score-val').innerText = score;
+            celebrate();
+        } else {
+            feed.innerText = "❌ خطأ! ركز في العد ❌";
+            feed.style.color = "#f44336";
+            btn.style.background = "#ffcdd2";
+            document.getElementById('s-no').play();
+        }
+
+        setTimeout(() => {
+            feed.innerText = "";
+            current++;
+            if(current < 20) loadQuestion();
+            else finish();
+        }, 2000);
+    }
+
+    function celebrate() {
+        for(let i=0; i<12; i++) {
+            const b = document.createElement('div');
+            b.className = 'balloon';
+            b.style.left = Math.random() * 100 + "vw";
+            b.style.background = `hsl(${Math.random() * 360}, 70%, 60%)`;
+            document.body.appendChild(b);
+            setTimeout(() => b.remove(), 3500);
+        }
+    }
+
+    function finish() {
+        document.getElementById('game-ui').innerHTML = `
+            <div class='card'>
+                <h1 style='color:var(--primary)'>🏆 مبروك يا بطل 🏆</h1>
+                <h2>لقد أنهيت التحدي بنجاح</h2>
+                <h1 style='font-size: 4rem; color: var(--accent)'>${score} / 20</h1>
+                <button class='start-btn' onclick='location.reload()'>العب مرة أخرى 🔄</button>
+            </div>`;
+    }
+</script>
+</body>
+</html>

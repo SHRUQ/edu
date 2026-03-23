@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تحدي جداول العلامات - الصف الأول</title>
+    <style>
+        :root { --main: #1e88e5; --correct: #4caf50; --wrong: #f44336; --bg: #fffde7; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; text-align: center; }
+        
+        /* الغلاف */
+        #cover { height: 100vh; background: #3f51b5; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        .btn-play { padding: 20px 60px; font-size: 2rem; background: #ffeb3b; color: #333; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 6px 0 #fbc02d; }
+
+        /* حاوية اللعبة */
+        .game-container { display: none; padding: 20px; max-width: 700px; margin: auto; }
+        .card { background: white; border-radius: 25px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 5px solid #90caf9; }
+        
+        /* تصميم حزمة العلامات (مثل الصورة) */
+        .tally-container { display: inline-flex; gap: 12px; vertical-align: middle; padding: 10px; }
+        .tally-bundle { position: relative; width: 45px; height: 55px; }
+        .v-stick { width: 4px; height: 45px; background: #0d47a1; position: absolute; border-radius: 2px; }
+        .v-stick:nth-child(1) { left: 5px; }
+        .v-stick:nth-child(2) { left: 15px; }
+        .v-stick:nth-child(3) { left: 25px; }
+        .v-stick:nth-child(4) { left: 35px; }
+        .slash { position: absolute; width: 55px; height: 5px; background: #d32f2f; top: 20px; left: -5px; transform: rotate(-45deg); border-radius: 2px; }
+        .v-single { width: 4px; height: 45px; background: #0d47a1; display: inline-block; margin: 0 4px; border-radius: 2px; }
+
+        /* الجداول */
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 1.4rem; }
+        th, td { border: 2px solid #1e88e5; padding: 15px; }
+        th { background: #bbdefb; }
+
+        /* أنواع الأسئلة */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .opt-btn { padding: 15px; font-size: 1.3rem; border: 2px solid #ddd; border-radius: 15px; background: #f9f9f9; cursor: pointer; font-weight: bold; }
+        input[type="number"] { width: 80px; padding: 10px; font-size: 1.5rem; text-align: center; border: 3px solid #1e88e5; border-radius: 10px; }
+        .check-btn { padding: 10px 30px; background: #ff9800; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 1.2rem; }
+
+        #feedback { font-size: 2.5rem; font-weight: bold; height: 60px; margin: 10px; }
+        .balloon { position: absolute; bottom: -100px; width: 45px; height: 65px; border-radius: 50%; animation: fly 4s forwards; }
+        @keyframes fly { to { transform: translateY(-110vh); } }
+    </style>
+</head>
+<body>
+
+    <div id="cover">
+        <h1>📊 بطل جداول العلامات 📊</h1>
+        <p style="font-size: 1.5rem;">أتقن فن الإحصاء في 20 سؤالاً!</p>
+        <button class="btn-play" onclick="initGame()">ابدأ المغامرة 🚀</button>
+    </div>
+
+    <div id="game-area" class="game-container">
+        <div class="card">
+            <div id="feedback"></div>
+            <h2 id="q-text" style="color: #0d47a1;">تحميل...</h2>
+            <div id="visual-area"></div>
+            <div id="answer-area" style="margin-top: 20px;"></div>
+            <div style="margin-top: 20px; font-weight: bold;">
+                السؤال: <span id="q-idx">1</span> / 20 | 
+                النقاط: <span id="score-val" style="color:green">0</span>
+            </div>
+        </div>
+    </div>
+
+    <audio id="snd-correct" src="https://assets.mixkit.co"></audio>
+    <audio id="snd-wrong" src="https://assets.mixkit.co"></audio>
+
+<script>
+    let currentQ = 0;
+    let score = 0;
+
+    // دالة رسم العلامات (4 عمودية + 1 مائلة)
+    function drawTally(n) {
+        let html = '<div class="tally-container">';
+        let bundles = Math.floor(n / 5);
+        let ones = n % 5;
+        for(let i=0; i<bundles; i++) {
+            html += `<div class="tally-bundle"><div class="v-stick"></div><div class="v-stick"></div><div class="v-stick"></div><div class="v-stick"></div><div class="slash"></div></div>`;
+        }
+        for(let j=0; j<ones; j++) {
+            html += `<div class="v-single"></div>`;
+        }
+        return html + '</div>';
+    }
+
+    const questions = [
+        // اختيار من متعدد
+        { type: 'mcq', q: "ما هو العدد الذي تمثله هذه العلامات؟", visual: () => drawTally(7), options: ["5", "7", "2", "6"], correct: "7" },
+        { type: 'mcq', q: "كم طفلاً يحب الذرة في هذا الجدول؟", visual: () => `<table><tr><th>المادة</th><th>العلامات</th></tr><tr><td>ذرة 🌽</td><td>${drawTally(10)}</td></tr></table>`, options: ["5", "10", "15", "4"], correct: "10" },
+        // صح وخطأ
+        { type: 'tf', q: "هل هذه العلامات تمثل الرقم 5؟", visual: () => drawTally(4), correct: "خطأ" },
+        { type: 'tf', q: "الحزمة المشطوبة (|||| + خط مائل) تعني 5 أصوات؟", visual: () => drawTally(5), correct: "صح" },
+        // أكمل الفراغ
+        { type: 'fill', q: "اكتب العدد الذي تمثله هذه العلامات:", visual: () => drawTally(3), correct: "3" },
+        { type: 'fill', q: "إذا كان لدينا حزمتان كاملتان، فما هو العدد؟", visual: () => drawTally(10), correct: "10" },
+        // تنويع إضافي
+        { type: 'mcq', q: "أي جدول يمثل الرقم 6؟", visual: () => `أ: ${drawTally(6)} <br> ب: ${drawTally(4)}`, options: ["أ", "ب"], correct: "أ" },
+        { type: 'fill', q: "كم علامة منفردة (بدون شطب) بجانب الحزمة لتمثيل الرقم 8؟", visual: () => drawTally(8), correct: "3" }
+    ];
+
+    // تكملة لـ 20 سؤالاً منوعاً
+    for(let i=9; i<=20; i++) {
+        let num = Math.floor(Math.random()*12)+1;
+        questions.push({
+            type: 'mcq',
+            q: `سؤال إحصاء ${i}: ما قيمة علامات العد الموضحة؟`,
+            visual: () => drawTally(num),
+            options: [num.toString(), (num+1).toString(), (num-1).toString(), "0"],
+            correct: num.toString()
+        });
+    }
+
+    function initGame() {
+        document.getElementById('cover').style.display = 'none';
+        document.getElementById('game-area').style.display = 'block';
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const data = questions[currentQ];
+        document.getElementById('q-text').innerText = data.q;
+        document.getElementById('visual-area').innerHTML = data.visual();
+        document.getElementById('q-idx').innerText = currentQ + 1;
+        
+        const answerArea = document.getElementById('answer-area');
+        answerArea.innerHTML = '';
+
+        if(data.type === 'mcq') {
+            let div = document.createElement('div');
+            div.className = 'options-grid';
+            data.options.forEach(opt => {
+                let btn = document.createElement('button');
+                btn.className = 'opt-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt);
+                div.appendChild(btn);
+            });
+            answerArea.appendChild(div);
+        } 
+        else if(data.type === 'tf') {
+            answerArea.innerHTML = `
+                <button class="opt-btn" onclick="checkAnswer('صح')">صح</button>
+                <button class="opt-btn" onclick="checkAnswer('خطأ')">خطأ</button>
+            `;
+        }
+        else if(data.type === 'fill') {
+            answerArea.innerHTML = `
+                <input type="number" id="input-ans">
+                <button class="check-btn" onclick="checkFill()">تحقق</button>
+            `;
+        }
+    }
+
+    function checkAnswer(val) {
+        const correct = questions[currentQ].correct;
+        const feedback = document.getElementById('feedback');
+        
+        if(val === correct) {
+            feedback.innerText = "✅ أحسنت! إجابة صحيحة";
+            feedback.style.color = "var(--correct)";
+            document.getElementById('snd-correct').play();
+            score++;
+            document.getElementById('score-val').innerText = score;
+            celebrate();
+        } else {
+            feedback.innerText = "❌ خطأ! حاول مجدداً";
+            feedback.style.color = "var(--wrong)";
+            document.getElementById('snd-wrong').play();
+        }
+
+        setTimeout(() => {
+            feedback.innerText = "";
+            currentQ++;
+            if(currentQ < 20) loadQuestion();
+            else showFinalResult();
+        }, 1500);
+    }
+
+    function checkFill() {
+        const val = document.getElementById('input-ans').value;
+        checkAnswer(val);
+    }
+
+    function celebrate() {
+        for(let i=0; i<10; i++) {
+            const b = document.createElement('div');
+            b.className = 'balloon';
+            b.style.left = Math.random() * 100 + "vw";
+            b.style.background = `hsl(${Math.random() * 360}, 70%, 50%)`;
+            document.body.appendChild(b);
+            setTimeout(() => b.remove(), 4000);
+        }
+    }
+
+    function showFinalResult() {
+        document.getElementById('game-area').innerHTML = `
+            <div class="card">
+                <h1>🏆 مبروك يا بطل 🏆</h1>
+                <h2>لقد أنهيت 20 سؤالاً في جداول العلامات</h2>
+                <h1 style="font-size: 4rem; color: var(--main)">${score} / 20</h1>
+                <button class="btn-play" onclick="location.reload()">العب مرة أخرى</button>
+            </div>
+        `;
+    }
+</script>
+</body>
+</html>

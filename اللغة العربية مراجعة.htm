@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مغامرة الحروف الممتعة 🎈</title>
+    <style>
+        :root { --primary: #FF6B6B; --secondary: #4ECDC4; --accent: #FFE66D; --bg: #F7FFF7; }
+        body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+        .game-card { width: 90%; max-width: 600px; background: white; border-radius: 30px; padding: 30px; box-shadow: 0 20px 0 #ddd, 0 25px 50px rgba(0,0,0,0.1); text-align: center; position: relative; border: 5px solid var(--secondary); }
+        .hidden { display: none !important; }
+        
+        /* أزرار مبهجة */
+        .btn { padding: 15px 35px; font-size: 22px; cursor: pointer; border-radius: 50px; border: none; margin: 10px; transition: 0.2s; font-weight: bold; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        .btn-green { background: #2ecc71; box-shadow: 0 6px #27ae60; }
+        .btn-green:active { transform: translateY(4px); box-shadow: 0 2px #27ae60; }
+        .option-btn { width: 100%; background: var(--secondary); margin: 10px 0; box-shadow: 0 5px #3baea6; font-size: 18px; }
+        .option-btn:hover { background: #45b7af; }
+
+        /* إشارات الصح والخطأ */
+        #feedback { font-size: 80px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; pointer-events: none; opacity: 0; }
+        .show-feedback { animation: popFeedback 0.8s ease-out; }
+        @keyframes popFeedback { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
+
+        .score-box { background: var(--accent); padding: 10px 20px; border-radius: 15px; display: inline-block; font-weight: bold; color: #555; margin-bottom: 20px; }
+        input[type="text"] { width: 80%; padding: 15px; border-radius: 15px; border: 3px solid var(--secondary); font-size: 20px; text-align: center; margin-bottom: 15px; }
+        .review-box { text-align: right; background: #fffbe6; padding: 20px; border-radius: 20px; border: 2px dashed var(--primary); margin: 20px 0; }
+    </style>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+</head>
+<body>
+
+<div class="game-card">
+    <div id="feedback"></div>
+
+    <!-- صفحة المراجعة -->
+    <div id="p-review">
+        <h1 style="color: var(--primary); font-size: 35px;">مراجعة العربية 🍎</h1>
+        <div class="review-box">
+            <p>🌟 <b>المد الطويل:</b> (آ - أُو - إِي) مثل: بـاب، تـوت، فـيل.</p>
+            <p>🌟 <b>حرف اللام:</b> لـيمون (أول)، سـلـم (وسط)، نحـل (آخر).</p>
+            <p>🌟 <b>الضد:</b> العكس، مثل: (كبير ضد صغير).</p>
+            <p>🌟 <b>الحركات:</b> سَـمكة (فتحة)، لُـعبة (ضمة)، حِـصان (كسرة).</p>
+        </div>
+        <button class="btn btn-green" onclick="startGame()">ابدأ اللعب الآن! 🎮</button>
+    </div>
+
+    <!-- صفحة الأسئلة -->
+    <div id="p-game" class="hidden">
+        <div class="score-box">السؤال: <span id="q-count">1</span>/20 | النتيجة: <span id="score">0</span></div>
+        <h2 id="q-text" style="color: #2c3e50; min-height: 60px;">تحميل...</h2>
+        <div id="options-box"></div>
+        <div id="blank-box" class="hidden">
+            <input type="text" id="user-input" placeholder="اكتب هنا...">
+            <br>
+            <button class="btn btn-green" onclick="checkBlank()">تحقق</button>
+        </div>
+    </div>
+
+    <!-- صفحة النهاية -->
+    <div id="p-end" class="hidden">
+        <h1 style="font-size: 40px;">أحسنت يا بطل! 🏆</h1>
+        <h2 id="final-res" style="color: var(--primary);"></h2>
+        <button class="btn btn-green" onclick="location.reload()">العب مرة ثانية 🔄</button>
+    </div>
+</div>
+
+<!-- أصوات (تعمل عبر الإنترنت) -->
+<audio id="bg-music" loop src="https://www.soundjay.com"></audio>
+<audio id="s-win" src="https://www.myinstants.com"></audio>
+<audio id="s-wrong" src="https://www.myinstants.com"></audio>
+<audio id="s-clap" src="https://www.myinstants.com"></audio>
+
+<script>
+const questions = [
+    {q: "ما هو حرف المد في 'حـامد'؟", type: "choice", opts: ["الألف", "الواو", "الياء"], ans: 0},
+    {q: "كلمة 'خروف' بها مد بالواو.", type: "bool", opts: ["صح ✅", "خطأ ❌"], ans: 0},
+    {q: "اكتب الحرف الناقص (مد بالياء): طـ....ـر (بمعنى عصفور)", type: "blank", ans: "ي"},
+    {q: "أين حرف اللام في كلمة 'لوز'؟", type: "choice", opts: ["أول الكلمة", "وسط الكلمة", "آخر الكلمة"], ans: 0},
+    {q: "شكل حرف اللام في كلمة 'عسل' هو (لـ).", type: "bool", opts: ["صح", "خطأ"], ans: 1},
+    {q: "ضد كلمة 'جميل' هو:", type: "choice", opts: ["قوي", "قبيح", "طويل"], ans: 1},
+    {q: "ما هو ضد كلمة 'مغلق'؟", type: "blank", ans: "مفتوح"},
+    {q: "الحركة فوق حرف (بِ) في 'بنت' هي:", type: "choice", opts: ["فتحة", "ضمة", "كسرة"], ans: 2},
+    {q: "الفتحة توضع أسفل الحرف.", type: "bool", opts: ["صح", "خطأ"], ans: 1},
+    {q: "أكمل الكلمة: ....ـيمون", type: "blank", ans: "ل"},
+    {q: "كلمة 'قـال' بها مد بالألف.", type: "bool", opts: ["صح", "خطأ"], ans: 0},
+    {q: "ضد كلمة 'بارد' هو 'حار'.", type: "bool", opts: ["صح", "خطأ"], ans: 0},
+    {q: "ما هي حركة حرف السين في كلمة (سُـحب)؟", type: "choice", opts: ["فتحة", "ضمة", "كسرة"], ans: 1},
+    {q: "المد في كلمة 'حليب' هو مد بـ:", type: "choice", opts: ["أ", "و", "ي"], ans: 2},
+    {q: "اكتب ضد كلمة 'فوق':", type: "blank", ans: "تحت"},
+    {q: "كلمة 'ولد' تنتهي بحرف اللام.", type: "bool", opts: ["صح", "خطأ"], ans: 1},
+    {q: "أكمل: الجمل يعيش في الـ....", type: "blank", ans: "صحراء"},
+    {q: "كلمة 'لعب' تبدأ بحرف اللام.", type: "bool", opts: ["صح", "خطأ"], ans: 0},
+    {q: "أي كلمة بها مد بالواو؟", type: "choice", opts: ["ورد", "توت", "بيت"], ans: 1},
+    {q: "ما ضد كلمة 'نهض'؟", type: "choice", opts: ["نام", "جلس", "مشى"], ans: 1}
+];
+
+let current = 0, score = 0;
+
+function startGame() {
+    document.getElementById('p-review').classList.add('hidden');
+    document.getElementById('p-game').classList.remove('hidden');
+    document.getElementById('bg-music').play().catch(() => {});
+    loadQuestion();
+}
+
+function loadQuestion() {
+    const q = questions[current];
+    document.getElementById('q-count').innerText = current + 1;
+    document.getElementById('q-text').innerText = q.q;
+    const optBox = document.getElementById('options-box');
+    const blankBox = document.getElementById('blank-box');
+    optBox.innerHTML = '';
+    
+    if (q.type !== 'blank') {
+        blankBox.classList.add('hidden');
+        q.opts.forEach((o, i) => {
+            const b = document.createElement('button');
+            b.innerText = o; b.className = 'btn option-btn';
+            b.onclick = () => check(i);
+            optBox.appendChild(b);
+        });
+    } else {
+        blankBox.classList.remove('hidden');
+        document.getElementById('user-input').value = '';
+    }
+}
+
+function check(idx) {
+    if (idx === questions[current].ans) showFeedback(true);
+    else showFeedback(false);
+}
+
+function checkBlank() {
+    const val = document.getElementById('user-input').value.trim();
+    if (val === questions[current].ans) showFeedback(true);
+    else showFeedback(false);
+}
+
+function showFeedback(isCorrect) {
+    const f = document.getElementById('feedback');
+    if (isCorrect) {
+        score++;
+        f.innerText = "✅";
+        f.style.color = "#2ecc71";
+        document.getElementById('s-win').play();
+    } else {
+        f.innerText = "❌";
+        f.style.color = "#e74c3c";
+        document.getElementById('s-wrong').play();
+    }
+    f.classList.remove('show-feedback');
+    void f.offsetWidth; // ريست للأنيميشن
+    f.classList.add('show-feedback');
+    
+    document.getElementById('score').innerText = score;
+    setTimeout(nextQuestion, 1000);
+}
+
+function nextQuestion() {
+    current++;
+    if (current < questions.length) loadQuestion();
+    else endGame();
+}
+
+function endGame() {
+    document.getElementById('p-game').classList.add('hidden');
+    document.getElementById('p-end').classList.remove('hidden');
+    document.getElementById('final-res').innerText = `حصلت على ${score} من 20`;
+    document.getElementById('s-clap').play();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>مغامرة الرياضيات: جداول وأعمدة</title>
+    <style>
+        :root { --primary: #0288d1; --success: #4caf50; --error: #f44336; --bg: #fdfae5; }
+        body { font-family: 'Arial', sans-serif; background: var(--bg); margin: 0; text-align: center; overflow-x: hidden; }
+        
+        /* شاشة الغلاف */
+        #cover { height: 100vh; background: linear-gradient(135deg, #0288d1, #00acc1); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        .btn-start { padding: 20px 60px; font-size: 2rem; background: #ffeb3b; color: #333; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 8px 0 #fbc02d; font-weight: bold; }
+
+        .card { background: white; border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 90%; max-width: 800px; margin: 20px auto; border: 6px solid #b3e5fc; position: relative; }
+        
+        /* الجدول المرتب */
+        .info-table { width: 85%; margin: 10px auto; border-collapse: collapse; font-size: 1.3rem; background: #fff; }
+        .info-table th, .info-table td { border: 2px solid var(--primary); padding: 12px; }
+        .info-table th { background: #e1f5fe; color: #01579b; }
+
+        /* منطقة الأعمدة - تم إنزالها بمسافة كبيرة */
+        .graph-area { 
+            display: flex; justify-content: center; align-items: flex-end; gap: 45px; 
+            height: 250px; margin-top: 100px; margin-bottom: 40px; 
+            border-bottom: 5px solid #333; padding-bottom: 5px; position: relative;
+        }
+        .col-group { display: flex; flex-direction: column-reverse; align-items: center; }
+        .box { width: 55px; height: 35px; border: 1px solid #ccc; cursor: pointer; background: #fff; transition: 0.1s; }
+        .label { margin-top: 15px; font-weight: bold; font-size: 1.2rem; color: #333; }
+
+        /* علامات الإحصاء (4 عمودي + 1 مائل أحمر) */
+        .t-wrap { display: inline-flex; gap: 8px; vertical-align: middle; }
+        .t-bundle { position: relative; width: 35px; height: 35px; display: inline-block; }
+        .t-bundle::before { content: "||||"; color: #0d47a1; font-weight: bold; font-size: 1.5rem; letter-spacing: 2px; }
+        .t-bundle::after { content: ""; position: absolute; width: 42px; height: 4px; background: #d32f2f; top: 15px; left: -3px; transform: rotate(-45deg); }
+        .t-single { border-left: 3px solid #0d47a1; height: 28px; margin: 0 3px; display: inline-block; }
+
+        /* التفاعل والأسئلة */
+        .ans-zone { margin-top: 20px; min-height: 100px; }
+        .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn-opt { padding: 15px; font-size: 1.3rem; border: 2px solid #ddd; border-radius: 15px; background: #fdfdfd; cursor: pointer; font-weight: bold; }
+        input[type="number"] { width: 100px; padding: 10px; font-size: 1.8rem; text-align: center; border: 3px solid var(--primary); border-radius: 12px; }
+        .btn-check { padding: 18px 50px; background: var(--success); color: white; border: none; border-radius: 15px; font-size: 1.5rem; cursor: pointer; box-shadow: 0 5px 0 #2e7d32; }
+
+        #feedback { font-size: 2.5rem; font-weight: bold; min-height: 65px; margin-bottom: 10px; }
+        .balloon { position: absolute; bottom: -80px; width: 45px; height: 65px; border-radius: 50%; animation: flyUp 4s linear forwards; }
+        @keyframes flyUp { to { transform: translateY(-115vh); } }
+    </style>
+</head>
+<body>
+
+    <div id="cover">
+        <h1>📊 مدرسة الجداول والأعمدة 📊</h1>
+        <p style="font-size: 1.6rem;">أجب على 15 سؤالاً لتصبح بطل الرياضيات!</p>
+        <button class="btn-start" onclick="start()">ابدأ اللعب 🚀</button>
+    </div>
+
+    <div id="game-ui" style="display:none; padding: 15px;">
+        <div class="card">
+            <div id="feedback"></div>
+            <h2 id="q-text" style="color: var(--primary);">تحميل السؤال...</h2>
+            
+            <table class="info-table" id="data-table"></table>
+            <div id="graph-container"></div>
+            <div id="ans-zone" class="ans-zone"></div>
+
+            <div style="margin-top:20px; border-top: 2px solid #eee; padding-top: 15px;">
+                <b>السؤال: <span id="q-idx">1</span> / 15</b> | <b>النقاط: <span id="score-val">0</span></b>
+            </div>
+        </div>
+    </div>
+
+    <!-- الأصوات -->
+    <audio id="snd-correct" src="https://assets.mixkit.co"></audio>
+    <audio id="snd-wrong" src="https://assets.mixkit.co"></audio>
+    <audio id="snd-clap" src="https://assets.mixkit.co"></audio>
+
+<script>
+    let currentQ = 0;
+    let score = 0;
+    let userColors = {};
+
+    function getTally(n) {
+        let h = '<div class="t-wrap">';
+        for(let i=0; i<Math.floor(n/5); i++) h += '<div class="t-bundle"></div>';
+        for(let j=0; j<(n%5); j++) h += '<div class="t-single"></div>';
+        return h + '</div>';
+    }
+
+    // 15 سؤالاً منوعاً بالكامل
+    const questions = [
+        { type: 'mcq', q: "من الجدول: كم طفلاً يحب التفاح 🍎؟", table: [{n:'تفاح 🍎', v:6}, {n:'موز 🍌', v:3}], options: ["3", "6", "9"], correct: "6" },
+        { type: 'color', q: "لوّن الأعمدة لتمثيل: (ذرة 4، خيار 2)", table: [{n:'ذرة 🌽', v:4}, {n:'خيار 🥒', v:2}], colors: ['#ffeb3b', '#4caf50'] },
+        { type: 'tf', q: "هل عدد النجوم ⭐ هو 5؟", table: [{n:'نجوم ⭐', v:5}], correct: "صح" },
+        { type: 'fill', q: "اكتب العدد الذي تمثله هذه العلامات:", table: [{n:'أقلام ✏️', v:8}], correct: "8" },
+        { type: 'read', q: "أي عمود هو الأطول؟", table: [{n:'قطة 🐱', v:7}, {n:'أرنب 🐰', v:4}], colors: ['grey', 'pink'], options: ["قطة", "أرنب"], correct: "قطة" },
+        { type: 'fill', q: "كم مجموع الأصوات في الجدول؟ (اجمع 3 + 2)", table: [{n:'أحمر', v:3}, {n:'أزرق', v:2}], correct: "5" },
+        { type: 'color', q: "لوّن الأعمدة: (شمس 5، مطر 3)", table: [{n:'شمس ☀️', v:5}, {n:'مطر 🌧️', v:3}], colors: ['#fbc02d', '#03a9f4'] },
+        { type: 'mcq', q: "كم يزيد عدد السيارات (8) عن الدراجات (5)؟", table: [{n:'سيارات 🚗', v:8}, {n:'دراجات 🚲', v:5}], options: ["2", "3", "5"], correct: "3" },
+        { type: 'tf', q: "هل العمود الثاني (9) أصغر من الأول (4)؟", table: [{n:'أ', v:4}, {n:'ب', v:9}], correct: "خطأ" },
+        { type: 'read', q: "من هو الأقل تفضيلاً؟", table: [{n:'أسد 🦁', v:6}, {n:'نمر 🐯', v:2}], colors: ['orange', 'gold'], options: ["أسد", "نمر"], correct: "نمر" },
+        { type: 'fill', q: "كم حزمة (5) موجودة في العدد 10؟", table: [{n:'إجمالي', v:10}], correct: "2" },
+        { type: 'mcq', q: "ما هي قيمة هذه العلامات (|||| + مائل)؟", table: [{n:'اختبار', v:5}], options: ["4", "5", "6"], correct: "5" },
+        { type: 'color', q: "لوّن الأعمدة: (بنات 7، أولاد 4)", table: [{n:'بنات', v:7}, {n:'أولاد', v:4}], colors: ['#e91e63', '#2196f3'] },
+        { type: 'tf', q: "هل مجموع العمودين هو 10؟", table: [{n:'أ', v:5}, {n:'ب', v:5}], correct: "صح" },
+        { type: 'read', q: "السؤال الأخير: كم عدد كل العناصر في الجدول؟", table: [{n:'أ', v:3}, {n:'ب', v:1}], colors: ['purple', 'cyan'], options: ["3", "4", "1"], correct: "4" }
+    ];
+
+    function start() {
+        document.getElementById('cover').style.display = 'none';
+        document.getElementById('game-ui').style.display = 'block';
+        loadQ();
+    }
+
+    function loadQ() {
+        const q = questions[currentQ];
+        const table = document.getElementById('data-table');
+        const graph = document.getElementById('graph-container');
+        const ansZone = document.getElementById('ans-zone');
+        
+        document.getElementById('q-text').innerText = q.q;
+        document.getElementById('q-idx').innerText = currentQ + 1;
+        
+        // 1. الجدول
+        table.innerHTML = `<tr><th>العنصر</th><th>العلامات</th><th>العدد</th></tr>`;
+        q.table.forEach(d => table.innerHTML += `<tr><td>${d.n}</td><td>${getTally(d.v)}</td><td><b>${d.v}</b></td></tr>`);
+
+        // 2. الأعمدة (تحت الجدول بمسافة)
+        let html = '<div class="graph-area">';
+        q.table.forEach((d, i) => {
+            html += `<div class="col-group">`;
+            for(let j=1; j<=9; j++){
+                let fill = (q.type === 'read' && j <= d.v) ? `style="background:${q.colors[i]}"` : '';
+                html += `<div class="box" data-col="${i}" data-row="${j}" ${fill} onclick="handleColor(${i},${j},'${q.colors?.[i] || '#2196f3'}')"></div>`;
+            }
+            html += `<div class="label">${d.n.split(' ')[0]}</div></div>`;
+        });
+        graph.innerHTML = html + '</div>';
+
+        // 3. منطقة الإجابة
+        ansZone.innerHTML = '';
+        if(q.type === 'mcq') {
+            let div = document.createElement('div'); div.className = 'opt-grid';
+            q.options.forEach(o => div.innerHTML += `<button class="btn-opt" onclick="verify('${o}', this)">${o}</button>`);
+            ansZone.appendChild(div);
+        } else if(q.type === 'tf') {
+            ansZone.innerHTML = `<div class="opt-grid">
+                <button class="btn-opt" onclick="verify('صح', this)">صح</button>
+                <button class="btn-opt" onclick="verify('خطأ', this)">خطأ</button>
+            </div>`;
+        } else if(q.type === 'fill') {
+            ansZone.innerHTML = `<input type="number" id="fill-in"> <button class="btn-check" onclick="checkFill()">تحقق</button>`;
+        } else if(q.type === 'color') {
+            userColors = {0:0, 1:0};
+            ansZone.innerHTML = `<button class="btn-check" onclick="checkColoring()">تحقق من تلويني ✅</button>`;
+        }
+    }
+
+    function handleColor(c, r, clr) {
+        if(questions[currentQ].type !== 'color') return;
+        userColors[c] = r;
+        document.querySelectorAll(`.box[data-col="${c}"]`).forEach(b => {
+            b.style.background = (parseInt(b.dataset.row) <= r) ? clr : '#fff';
+        });
+    }
+
+    function checkFill() { verify(document.getElementById('fill-in').value); }
+
+    function checkColoring() {
+        const q = questions[currentQ];
+        verify(userColors === q.table.v && userColors === q.table.v ? 'win' : 'lose');
+    }
+
+    function verify(ans, btn) {
+        const q = questions[currentQ];
+        const isWin = (ans === 'win') || (ans === q.correct);
+        const feed = document.getElementById('feedback');
+        document.querySelectorAll('button').forEach(b => b.disabled = true);
+
+        if(isWin) {
+            feed.innerText = "✅ صـح! بـطل";
+            feed.style.color = "var(--success)";
+            if(btn) btn.style.background = "#c8e6c9";
+            document.getElementById('snd-correct').play();
+            score++;
+            document.getElementById('score-val').innerText = score;
+            celebrate();
+        } else {
+            feed.innerText = "❌ خـطأ! ركـز";
+            feed.style.color = "var(--error)";
+            if(btn) btn.style.background = "#ffcdd2";
+            document.getElementById('snd-wrong').play();
+        }
+
+        setTimeout(() => {
+            feed.innerText = "";
+            currentQ++;
+            if(currentQ < 15) loadQ();
+            else showFinal();
+        }, 2000);
+    }
+
+    function celebrate() {
+        for(let i=0; i<10; i++){
+            let b = document.createElement('div'); b.className = 'balloon';
+            b.style.left = Math.random() * 100 + "vw";
+            b.style.background = `hsl(${Math.random() * 360}, 70%, 50%)`;
+            document.body.appendChild(b);
+            setTimeout(() => b.remove(), 4000);
+        }
+    }
+
+    function showFinal() {
+        document.getElementById('snd-clap').play();
+        document.getElementById('game-ui').innerHTML = `
+            <div class="card">
+                <h1 style="color:var(--primary)">🏆 مـبروك يا ذكي! 🏆</h1>
+                <h2>لقد أجبت على 15 سؤالاً بنجاح</h2>
+                <h1 style="font-size: 5rem; color: var(--error)">${score} / 15</h1>
+                <button class="btn-start" onclick="location.reload()">العب مرة أخرى 🔄</button>
+            </div>
+        `;
+    }
+</script>
+</body>
+</html>

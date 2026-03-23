@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لعبة علوم الصف الأول 🧪</title>
+    <style>
+        :root { --p: #2E7D32; --s: #FFA000; --bg: #F1F8E9; }
+        body { font-family: 'Arial', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 90%; max-width: 500px; text-align: center; border: 5px solid var(--p); }
+        .btn { background: var(--p); color: white; border: none; padding: 15px 30px; border-radius: 15px; cursor: pointer; font-size: 1.2em; margin: 10px; width: 100%; transition: 0.3s; }
+        .btn:hover { background: var(--s); }
+        .hidden { display: none; }
+        #q-text { font-size: 1.4em; margin-bottom: 20px; font-weight: bold; }
+        #score-box { font-weight: bold; color: var(--p); margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- ملف الصوت المحدث -->
+    <audio id="game-music" loop>
+        <source src="https://www.soundhelix.com" type="audio/mpeg">
+    </audio>
+
+    <div class="box">
+        <div id="start-div">
+            <h1 style="color: var(--p)">أهلاً بك يا بطل العلوم! 🌟</h1>
+            <p>اضغط الزر لبدء التحدي وسماع الموسيقى</p>
+            <button class="btn" onclick="start()">ابدأ اللعبة الآن 🚀</button>
+        </div>
+
+        <div id="quiz-div" class="hidden">
+            <div id="status" style="color: #666; margin-bottom: 10px;"></div>
+            <div id="q-text"></div>
+            <div id="opt-container"></div>
+            <div id="score-box">الدرجة: <span id="score-val">0</span></div>
+        </div>
+
+        <div id="end-div" class="hidden">
+            <h1 style="color: var(--s)">انتهت اللعبة! 🎉</h1>
+            <div id="final-res" style="font-size: 3em; margin: 20px 0;"></div>
+            <button class="btn" onclick="location.reload()">العب مرة أخرى 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const data = [
+            {q: "الأداة التي تجعل الأجسام تبدو أكبر هي:", a: ["المسطرة", "العدسة المكبرة", "الميزان"], c: 1},
+            {q: "تستخدم العدسة المكبرة لرؤية الأجسام التي:", a: ["لا ترى بالعين", "كبيرة جداً"], c: 0},
+            {q: "كمية المادة التي يحويها الجسم هي:", a: ["الطول", "الكتلة"], c: 1},
+            {q: "لقياس طول قطعة طباشير نستخدم:", a: ["المسطرة", "الميزان"], c: 0},
+            {q: "المسطرة تقيس الطول بالسنتيمتر و:", a: ["البوصات", "الكيلوجرام"], c: 0},
+            {q: "لقياس الكتلة نستخدم:", a: ["الميزان ذو كفتين", "العدسة"], c: 0},
+            {q: "الأجسام الأثقل تكون كتلها:", a: ["أصغر", "أكبر"], c: 1},
+            {q: "في الميزان، الجانب المنخفض هو صاحب الكتلة الـ:", a: ["أخف", "أكبر"], c: 1},
+            {q: "مدى سخونة الجسم أو برودته هو:", a: ["الحرارة", "الكتلة"], c: 0},
+            {q: "الأداة التي تقيس الحرارة هي:", a: ["الميزان", "مقياس الحرارة"], c: 1},
+            {q: "عدد حواس الإنسان هي:", a: ["3 حواس", "5 حواس"], c: 1},
+            {q: "عندما تصف المادة، يمكنك كتابتها أو:", a: ["رسمها", "أكلها"], c: 0},
+            {q: "العدسة تساعدنا في رؤية الاختلافات بين:", a: ["المواد", "الأصوات"], c: 0},
+            {q: "عند القياس، نكتشف طول الجسم أو:", a: ["لونه", "ثقله"], c: 1},
+            {q: "الكتلة والطول هما من خصائص:", a: ["المادة", "اللعب"], c: 0}
+        ];
+
+        let idx = 0, score = 0;
+        const music = document.getElementById('game-music');
+
+        function start() {
+            // تشغيل الموسيقى فوراً عند الضغط
+            music.play().catch(e => console.log("الصوت يحتاج تفاعل")); 
+            document.getElementById('start-div').classList.add('hidden');
+            document.getElementById('quiz-div').classList.remove('hidden');
+            render();
+        }
+
+        function render() {
+            const q = data[idx];
+            document.getElementById('status').innerText = `السؤال ${idx + 1} من 15`;
+            document.getElementById('q-text').innerText = q.q;
+            const container = document.getElementById('opt-container');
+            container.innerHTML = '';
+            q.a.forEach((opt, i) => {
+                const b = document.createElement('button');
+                b.className = 'btn';
+                b.innerText = opt;
+                b.onclick = () => {
+                    if(i === q.c) { score++; document.getElementById('score-val').innerText = score; }
+                    idx++;
+                    if(idx < data.length) render(); else end();
+                };
+                container.appendChild(b);
+            });
+        }
+
+        function end() {
+            document.getElementById('quiz-div').classList.add('hidden');
+            document.getElementById('end-div').classList.remove('hidden');
+            document.getElementById('final-res').innerText = `${score} / 15`;
+        }
+    </script>
+</body>
+</html>

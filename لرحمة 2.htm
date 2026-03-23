@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لعبة درس الرحمة - تحدي الأبطال</title>
+    <style>
+        :root { --primary: #00796b; --accent: #ff4081; --bg: #e0f2f1; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        
+        #game-card { 
+            background: rgba(255, 255, 255, 0.95); 
+            width: 90%; max-width: 550px; 
+            padding: 30px; border-radius: 25px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+            text-align: center; z-index: 10; position: relative;
+            border: 4px solid var(--primary);
+        }
+
+        .timer-display { 
+            font-size: 22px; color: white; background: var(--accent); 
+            display: inline-block; padding: 5px 20px; border-radius: 15px; margin-bottom: 15px;
+        }
+
+        h1 { color: var(--primary); font-size: 2.2em; margin-top: 0; }
+        
+        .btn { 
+            background: var(--primary); color: white; border: none; 
+            padding: 15px 25px; font-size: 1.1em; border-radius: 12px; 
+            cursor: pointer; margin: 8px; width: 85%; transition: 0.3s;
+            box-shadow: 0 4px 0 #004d40;
+        }
+        .btn:hover { background: #00897b; transform: translateY(-2px); }
+        .btn:active { transform: translateY(2px); box-shadow: none; }
+
+        #quiz-area, #result-area { display: none; }
+        .question-text { font-size: 1.4em; margin: 20px 0; color: #333; line-height: 1.5; }
+
+        /* تأثير البالونات */
+        .balloon { 
+            position: absolute; bottom: -100px; width: 50px; height: 65px; 
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; 
+            animation: floatUp 8s linear infinite; opacity: 0.7; z-index: 1;
+        }
+        @keyframes floatUp { 
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-120vh) rotate(20deg); } 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- موسيقى اللعبة (تعمل طوال الوقت) -->
+    <audio id="bgMusic" loop>
+        <source src="https://www.soundhelix.com" type="audio/mpeg">
+    </audio>
+
+    <div id="game-card">
+        <!-- شاشة البداية -->
+        <div id="start-area">
+            <h1>✨ درس الرحمة ✨</h1>
+            <p style="font-size: 1.2em;">مستعد للتحدي؟ لديك 15 ثانية لكل سؤال!</p>
+            <button class="btn" onclick="startLoading()">ابدأ اللعب الآن 🎮</button>
+        </div>
+
+        <!-- منطقة الأسئلة -->
+        <div id="quiz-area">
+            <div class="timer-display">⏱️ المتبقي: <span id="time-left">15</span> ثانية</div>
+            <div id="q-count" style="color: #555; font-weight: bold;">سؤال 1 من 20</div>
+            <div class="question-text" id="q-text"></div>
+            <div id="options-box"></div>
+        </div>
+
+        <!-- شاشة النتيجة -->
+        <div id="result-area">
+            <h1>🎊 رائع جداً! 🎊</h1>
+            <p style="font-size: 1.5em;">لقد أنهيت التحدي بنجاح</p>
+            <div id="final-score" style="font-size: 3.5em; color: var(--accent); font-weight: bold; margin: 20px 0;"></div>
+            <button class="btn" onclick="location.reload()">إعادة اللعب 🔄</button>
+        </div>
+    </div>
+
+    <div id="balloon-container"></div>
+
+    <script>
+        const questions = [
+            { q: "ما معنى الرحمة في الدرس؟", o: ["القسوة والشدة", "الرقة والرفق والعطف", "الإهمال والنسيان"], a: 1 },
+            { q: "راوي الحديث الشريف هو أبو هريرة رضي الله عنه.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "قال ﷺ: 'من لا يَرْحَمْ لا يُرْحَمْ'.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "الرحمة تكون بالإنسان فقط ولا تشمل الحيوانات.", o: ["صح ✅", "خطأ ❌"], a: 1 },
+            { q: "ما اسم حفيدة النبي ﷺ التي كان يحملها في الصلاة؟", o: ["زينب", "فاطمة", "أمامة"], a: 2 },
+            { q: "لماذا كان النبي ﷺ ينزل حفيدته عند الركوع؟", o: ["لأنه تعب من حملها", "خوفاً عليها من السقوط", "ليلعب معها"], a: 1 },
+            { q: "الرجل الذي سقى الكلب نال مغفرة الله تعالى.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "دخلت امرأة النار بسبب هرة حبستها حتى ماتت.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "معنى كلمة 'يلهث' أي: يخرج لسانه من شدة العطش.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "الرحمة بالجد والجدة تكون بزيارتهما ومساعدتهما.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "إذا رأيت شخصاً يعذب عصفوراً، فماذا تفعل؟", o: ["أتركه وشأنه", "أنصحه بالرفق والرحمة", "أساعده في ذلك"], a: 1 },
+            { q: "الرحمة بالمخلوقات سبب لنيل رحمة الله تعالى.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "توفير الطعام والشراب للحيوانات من صور الرحمة.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "الرحمة تجعل الناس يكرهون الشخص ويبتعدون عنه.", o: ["صح ✅", "خطأ ❌"], a: 1 },
+            { q: "كان رسولنا الكريم ﷺ رحيماً عطوفاً بالأطفال.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "زيارة الجار المريض تعتبر نوعاً من أنواع الرحمة.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "المرأة التي حبست القطة لم تتركها تأكل من 'خشاش الأرض'.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "الهدف من رحمة الوالدين هو نيل رضا الله والجنة.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "الرحمة صفة يتحلى بها المؤمن الصادق.", o: ["صح ✅", "خطأ ❌"], a: 0 },
+            { q: "أتعامل مع كل المخلوقات بلطف ورفق اقتداءً بالنبي ﷺ.", o: ["صح ✅", "خطأ ❌"], a: 0 }
+        ];
+
+        let currentQ = 0, score = 0, timeLeft = 15, timerInterval;
+
+        function startLoading() {
+            document.getElementById('start-area').style.display = 'none';
+            document.getElementById('quiz-area').style.display = 'block';
+            document.getElementById('bgMusic').play(); // تشغيل الموسيقى
+            showQuestion();
+            createBalloons();
+        }
+
+        function showQuestion() {
+            clearInterval(timerInterval);
+            timeLeft = 15;
+            document.getElementById('time-left').innerText = timeLeft;
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('time-left').innerText = timeLeft;
+                if(timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    checkAnswer(-1);
+                }
+            }, 1000);
+
+            const q = questions[currentQ];
+            document.getElementById('q-count').innerText = `سؤال ${currentQ + 1} من 20`;
+            document.getElementById('q-text').innerText = q.q;
+            const box = document.getElementById('options-box');
+            box.innerHTML = '';
+            q.o.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(i);
+                box.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(i) {
+            if (i === questions[currentQ].a) score++;
+            currentQ++;
+            if (currentQ < questions.length) showQuestion();
+            else showResult();
+        }
+
+        function showResult() {
+            clearInterval(timerInterval);
+            document.getElementById('quiz-area').style.display = 'none';
+            document.getElementById('result-area').style.display = 'block';
+            document.getElementById('final-score').innerText = `${score} / 20`;
+        }
+
+        function createBalloons() {
+            const container = document.getElementById('balloon-container');
+            const colors = ['#ff5252', '#ffeb3b', '#4caf50', '#2196f3', '#e91e63', '#ff9800'];
+            setInterval(() => {
+                const b = document.createElement('div');
+                b.className = 'balloon';
+                b.style.left = Math.random() * 100 + 'vw';
+                b.style.background = colors[Math.floor(Math.random() * colors.length)];
+                b.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                container.appendChild(b);
+                setTimeout(() => b.remove(), 8000);
+            }, 400);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>درس أحب أن أعمل - الصف الأول</title>
+    <style>
+        @import url('https://fonts.googleapis.com');
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #80deea 100%);
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0; overflow: hidden;
+        }
+
+        #game-container {
+            background: white; width: 90%; max-width: 500px;
+            padding: 35px; border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            text-align: center; border: 6px solid #4CAF50;
+            position: relative;
+        }
+
+        .question-box {
+            background: #fffde7; padding: 25px;
+            border-radius: 20px; border: 3px solid #ffd54f;
+            margin-bottom: 25px; font-size: 1.6rem; color: #333;
+        }
+
+        .btn {
+            background: #4ecdc4; color: white; border: none;
+            padding: 15px 20px; margin: 10px; font-size: 1.3rem;
+            border-radius: 15px; cursor: pointer; transition: 0.3s;
+            width: 85%; box-shadow: 0 4px 0 #3baea5;
+        }
+
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 6px 0 #3baea5; }
+        .btn:active { transform: translateY(2px); box-shadow: none; }
+
+        #feedback-msg {
+            font-size: 6rem; position: absolute; top: 45%; left: 50%;
+            transform: translate(-50%, -50%); display: none; z-index: 100;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .footer-name {
+            position: absolute; bottom: 8px; right: 15px;
+            font-size: 11px; color: #999; font-weight: normal;
+        }
+
+        .screen { display: none; }
+        .active { display: block; animation: fadeIn 0.5s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .prize-icon { font-size: 7rem; margin: 20px 0; display: block; }
+        
+        .balloon {
+            position: absolute; width: 45px; height: 60px;
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+            animation: moveUp 4s ease-in forwards; z-index: 5;
+        }
+
+        @keyframes moveUp { to { transform: translateY(-120vh); } }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="feedback-msg"></div>
+
+        <!-- شاشة البداية -->
+        <div id="start-screen" class="screen active">
+            <h1 style="color: #2c3e50; font-size: 2.2rem;">أحب أن أعمل</h1>
+            <p style="font-size: 1.2rem; color: #555;">مرحباً يا بطل! لنبدأ رحلة المهن والحاجات</p>
+            <button class="btn" style="background: #ff6b6b; box-shadow: 0 4px 0 #ee5253;" onclick="start()">ابدأ اللعب الآن</button>
+            <div class="footer-name">شروق الحنيطي</div>
+        </div>
+
+        <!-- شاشة اللعب -->
+        <div id="play-screen" class="screen">
+            <div id="q-num" style="margin-bottom: 10px; color: #4CAF50; font-size: 1.1rem;"></div>
+            <div class="question-box" id="q-text"></div>
+            <div id="options-area"></div>
+        </div>
+
+        <!-- شاشة النتيجة -->
+        <div id="end-screen" class="screen">
+            <h2 id="final-status" style="font-size: 2rem;"></h2>
+            <div id="prize-div" class="prize-icon"></div>
+            <h3 id="score-display" style="color: #444;"></h3>
+            <button class="btn" onclick="location.reload()">إعادة المحاولة</button>
+        </div>
+    </div>
+
+    <!-- أصوات اللعبة -->
+    <audio id="bgMusic" loop src="https://www.soundhelix.com"></audio>
+    <audio id="sCorrect" src="https://assets.mixkit.co"></audio>
+    <audio id="sWrong" src="https://assets.mixkit.co"></audio>
+
+    <script>
+        const questions = [
+            { q: "المعلم يدرس الطلاب في المدرسة؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "الماء والغذاء من الحاجات..", a: ["الأساسية", "غير الأساسية"], c: 0 },
+            { q: "الطبيب يعالج المرضى في..", a: ["المصنع", "المستشفى"], c: 1 },
+            { q: "اللعب بالكرة والدمى حاجة أساسية؟", a: ["صح ✅", "خطأ ❌"], c: 1 },
+            { q: "الشرطي يحافظ على أمننا؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "نشتري احتياجاتنا بـ..", a: ["الرسم", "النقود"], c: 1 },
+            { q: "رجل الإطفاء يساعد في إطفاء الحرائق؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "الملابس تحمي أجسامنا وهي حاجة أساسية؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "المهندس يبني البيوت والمدارس؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "الحاجة غير الأساسية هي شيء نحبه ولكن نعيش بدونه؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "نعمل لكي نخدم وطننا الغالي؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "من يزرع لنا الخضروات والفواكه؟", a: ["الفلاح", "الطيار"], c: 0 },
+            { q: "العمل يساعدنا على كسب المال؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "نذهب للمدرسة لكي نتعلم؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "الهواء ضروري جداً لكي نتنفس؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "الآيس كريم يعتبر من الحاجات الأساسية؟", a: ["صح ✅", "خطأ ❌"], c: 1 },
+            { q: "النجار يصنع لنا الكراسي من الخشب؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "المنزل يحمينا من حرارة الشمس؟", a: ["صح ✅", "خطأ ❌"], c: 0 },
+            { q: "الكسل في العمل يجعل الوطن يتقدم؟", a: ["صح ✅", "خطأ ❌"], c: 1 },
+            { q: "أنا طفل مجتهد أحب العلم والعمل؟", a: ["نعم ✅", "لا ❌"], c: 0 }
+        ];
+
+        let cur = 0; let score = 0;
+
+        function start() {
+            document.getElementById('bgMusic').play();
+            showScreen('play-screen');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const q = questions[cur];
+            document.getElementById('q-num').innerText = `السؤال ${cur+1} من 20`;
+            document.getElementById('q-text').innerText = q.q;
+            const area = document.getElementById('options-area');
+            area.innerHTML = '';
+            q.a.forEach((opt, i) => {
+                const b = document.createElement('button');
+                b.className = 'btn';
+                b.innerText = opt;
+                b.onclick = () => checkAns(i);
+                area.appendChild(b);
+            });
+        }
+
+        function checkAns(idx) {
+            const feedback = document.getElementById('feedback-msg');
+            feedback.style.display = 'block';
+            
+            if(idx === questions[cur].c) {
+                score++;
+                feedback.innerText = "صح ✅";
+                feedback.style.color = "#4CAF50";
+                document.getElementById('sCorrect').play();
+                createBalloons();
+            } else {
+                feedback.innerText = "خطأ ❌";
+                feedback.style.color = "#f44336";
+                document.getElementById('sWrong').play();
+            }
+
+            setTimeout(() => {
+                feedback.style.display = 'none';
+                cur++;
+                if(cur < questions.length) loadQuestion();
+                else showResult();
+            }, 1000);
+        }
+
+        function showResult() {
+            showScreen('end-screen');
+            const status = document.getElementById('final-status');
+            const prize = document.getElementById('prize-div');
+            const scoreDisplay = document.getElementById('score-display');
+            
+            scoreDisplay.innerText = `درجتك هي: ${score} من 20`;
+            
+            if(score >= 10) {
+                status.innerText = "ناجح! مبارك الكأس يا بطل";
+                status.style.color = "#2ecc71";
+                prize.innerText = "🏆";
+            } else {
+                status.innerText = "حاول مرة أخرى لتصبح بطلاً!";
+                status.style.color = "#e67e22";
+                prize.innerText = "💪";
+            }
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function createBalloons() {
+            for(let i=0; i<12; i++) {
+                const b = document.createElement('div');
+                b.className = 'balloon';
+                b.style.left = Math.random() * 95 + '%';
+                b.style.bottom = '-60px';
+                b.style.background = `hsl(${Math.random()*360}, 80%, 60%)`;
+                document.body.appendChild(b);
+                setTimeout(() => b.remove(), 4000);
+            }
+        }
+    </script>
+</body>
+</html>

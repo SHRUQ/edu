@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>لعبة تعليمية</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: linear-gradient(red, white);
+    text-align: center;
+    direction: rtl;
+    color: #333;
+}
+
+.container {
+    background: white;
+    padding: 20px;
+    margin: 50px auto;
+    width: 80%;
+    border-radius: 15px;
+}
+
+button {
+    padding: 10px;
+    margin: 10px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.correct {
+    background: #4CAF50;
+    color: white;
+}
+
+.wrong {
+    background: #f44336;
+    color: white;
+}
+
+#result {
+    font-size: 22px;
+    margin-top: 20px;
+}
+
+/* فقاعات */
+.bubble {
+    position: fixed;
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    background: rgba(0,150,255,0.5);
+    border-radius: 50%;
+    animation: rise 2s linear;
+}
+
+@keyframes rise {
+    to {
+        transform: translateY(-500px);
+        opacity: 0;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<audio id="bgMusic" autoplay loop>
+    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
+</audio>
+
+<audio id="correctSound">
+    <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3">
+</audio>
+
+<div class="container">
+    <h2 id="question"></h2>
+    <div id="answers"></div>
+    <div id="result"></div>
+</div>
+
+<script>
+const questions = [
+{
+q: "الجسم الصلب له شكل محدد؟",
+a: ["صح","خطأ"],
+correct: 0
+},
+{
+q: "الهواء جسم صلب؟",
+a: ["صح","خطأ"],
+correct: 1
+},
+{
+q: "الكتاب جسم صلب؟",
+a: ["صح","خطأ"],
+correct: 0
+},
+{
+q: "الأجسام الصلبة تتغير كميتها بسهولة؟",
+a: ["صح","خطأ"],
+correct: 1
+},
+{
+q: "بعض الأجسام الصلبة يمكن ثنيها؟",
+a: ["صح","خطأ"],
+correct: 0
+},
+{
+q: "الزجاج شفاف؟",
+a: ["صح","خطأ"],
+correct: 0
+},
+{
+q: "الصخر لين؟",
+a: ["صح","خطأ"],
+correct: 1
+},
+{
+q: "الظل منطقة مظلمة؟",
+a: ["صح","خطأ"],
+correct: 0
+},
+{
+q: "الأجسام الشفافة تمنع الضوء؟",
+a: ["صح","خطأ"],
+correct: 1
+},
+{
+q: "الضوء يؤثر على طول الظل؟",
+a: ["صح","خطأ"],
+correct: 0
+},
+{
+q: "أي من هذه جسم صلب؟",
+a: ["هواء","كتاب","ضوء"],
+correct: 1
+},
+{
+q: "أي مادة شفافة؟",
+a: ["زجاج","خشب","حديد"],
+correct: 0
+},
+{
+q: "أي جسم يطفو؟",
+a: ["بعض الأجسام الصلبة","كلها","لا شيء"],
+correct: 0
+},
+{
+q: "الأجسام الصلبة لها:",
+a: ["شكل ثابت","بدون شكل","سائل"],
+correct: 0
+},
+{
+q: "كلما كان الضوء منخفض يزداد:",
+a: ["طول الظل","يقصر الظل","يختفي"],
+correct: 0
+}
+];
+
+let current = 0;
+let score = 0;
+
+function showQuestion() {
+    let q = questions[current];
+    document.getElementById("question").innerText = q.q;
+
+    let answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    q.a.forEach((ans, index) => {
+        let btn = document.createElement("button");
+        btn.innerText = ans;
+        btn.onclick = () => checkAnswer(index, btn);
+        answersDiv.appendChild(btn);
+    });
+}
+
+function checkAnswer(index, btn) {
+    let q = questions[current];
+
+    if(index === q.correct) {
+        btn.classList.add("correct");
+        document.getElementById("correctSound").play();
+        score++;
+        createBubbles();
+    } else {
+        btn.classList.add("wrong");
+    }
+
+    setTimeout(() => {
+        current++;
+        if(current < questions.length) {
+            showQuestion();
+        } else {
+            showResult();
+        }
+    }, 1000);
+}
+
+function showResult() {
+    document.getElementById("question").innerText = "انتهت اللعبة 🎉";
+    document.getElementById("answers").innerHTML = "";
+    document.getElementById("result").innerText = "نتيجتك: " + score + " / 15";
+}
+
+function createBubbles() {
+    for(let i=0; i<10; i++){
+        let bubble = document.createElement("div");
+        bubble.classList.add("bubble");
+        bubble.style.left = Math.random()*100 + "vw";
+        document.body.appendChild(bubble);
+
+        setTimeout(() => {
+            bubble.remove();
+        }, 2000);
+    }
+}
+
+showQuestion();
+</script>
+
+</body>
+</html>

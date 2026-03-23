@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الأبطال - وسام النجاح</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; background-color: #fff9c4; text-align: center; margin: 0; padding: 20px; }
+        .container { max-width: 600px; background: white; margin: auto; padding: 30px; border-radius: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); border: 10px solid #ffca28; position: relative; overflow: hidden; }
+        h1 { color: #f57c00; font-size: 35px; }
+        .btn { background-color: #4caf50; color: white; border: none; padding: 25px; font-size: 28px; border-radius: 25px; cursor: pointer; margin: 15px; width: 90%; font-weight: bold; box-shadow: 0 5px 0 #2e7d32; }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .option-btn { background-color: #03a9f4; }
+        .option-btn:nth-child(even) { background-color: #ec407a; }
+        .hidden { display: none; }
+        .review-box { text-align: right; background: #fffde7; padding: 20px; border-radius: 20px; margin-bottom: 20px; border: 3px solid #ffb300; font-size: 22px; }
+        
+        /* طبقة الرموز (صح وخطأ) */
+        #feedback-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; align-items: center; justify-content: center;
+            font-size: 180px; border-radius: 30px; z-index: 10;
+            background-color: rgba(255,255,255,0.95);
+        }
+        
+        /* وسام النجاح */
+        .medal-img { font-size: 120px; display: block; margin: 20px auto; animation: bounce 1s infinite; }
+        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+        .success-msg { color: #2e7d32; font-size: 30px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="feedback-overlay"></div>
+
+    <!-- شاشة البداية -->
+    <div id="start-screen">
+        <h1>أهلاً بك يا بطل! 🌟</h1>
+        <div class="review-box">
+            ⭐ نأكل بيميننا ونقول <b>"بسم الله"</b>.<br>
+            ⭐ <b>أسماء</b> هي بطلة ذات النطاقين.<br>
+            ⭐ <b>الرحمة</b> هي أن نحب الجميع ونرفق بهم.<br>
+            ⭐ <b>الكوثر</b> نهر في الجنة لأحب مخلوق ﷺ.
+        </div>
+        <button class="btn" onclick="startGame()">ابدأ ومرحى! 🚀</button>
+    </div>
+
+    <!-- شاشة الأسئلة -->
+    <div id="quiz-screen" class="hidden">
+        <h2 id="question-text" style="font-size: 32px; color: #444;"></h2>
+        <div id="options-container"></div>
+        <p style="font-size: 24px; color: #888;">السؤال <span id="current-idx">1</span> من 10</p>
+    </div>
+
+    <!-- شاشة النتيجة النهائية والوسام -->
+    <div id="result-screen" class="hidden">
+        <div id="medal-container"></div>
+        <h1 id="result-title">انتهينا!</h1>
+        <p id="result-text" style="font-size: 35px;"></p>
+        <button class="btn" onclick="location.reload()">العب مرة أخرى 🔄</button>
+    </div>
+</div>
+
+<audio id="bg-music" loop>
+    <source src="https://www.soundhelix.com" type="audio/mpeg">
+</audio>
+
+<script>
+    const questions = [
+        { q: "ماذا نقول قبل الأكل؟", options: ["بسم الله", "الحمد لله"], correct: 0 },
+        { q: "نأكل باليد الـ..؟", options: ["اليسرى", "اليمنى"], correct: 1 },
+        { q: "لقب أسماء بنت أبي بكر:", options: ["ذات النطاقين", "المعلمة"], correct: 0 },
+        { q: "من أخذ الطعام للرسول في الغار؟", options: ["أسماء", "الأولاد"], correct: 0 },
+        { q: "إذا رأيت قطة جائعة:", options: ["أطعمها", "أتركها"], correct: 0 },
+        { q: "من هم أحب مخلوقات ربي؟", options: ["الرسل والأنبياء", "الأشرار"], correct: 0 },
+        { q: "الكوثر هو نهر في:", options: ["الجنة", "البيت"], correct: 0 },
+        { q: "أعطى الله الكوثر لنبيه:", options: ["محمد ﷺ", "يوسف عليه السلام"], correct: 0 },
+        { q: "عندما أشبع أقول:", options: ["أستغفر الله", "الحمد لله"], correct: 1 },
+        { q: "أن نكون طيبين مع الحيوان:", options: ["قسوة", "رحمة"], correct: 1 }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+
+    function startGame() {
+        document.getElementById('bg-music').play();
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const q = questions[currentQuestionIndex];
+        document.getElementById('question-text').innerText = q.q;
+        document.getElementById('current-idx').innerText = currentQuestionIndex + 1;
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        q.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.innerText = opt;
+            btn.className = 'btn option-btn';
+            btn.onclick = () => checkAnswer(index);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected) {
+        const overlay = document.getElementById('feedback-overlay');
+        overlay.style.display = 'flex';
+        
+        if (selected === questions[currentQuestionIndex].correct) {
+            score++;
+            overlay.innerHTML = '<span style="color: #4caf50;">✔️</span>';
+        } else {
+            overlay.innerHTML = '<span style="color: #f44336;">✖️</span>';
+        }
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }, 800);
+    }
+
+    function showResult() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        
+        const medalContainer = document.getElementById('medal-container');
+        const resultText = document.getElementById('result-text');
+        
+        if (score >= 7) {
+            medalContainer.innerHTML = '<div class="medal-img">🏆</div><div class="success-msg">مبروك! أنت بطل وسام النجاح! 🎖️</div>';
+            resultText.style.color = "#2e7d32";
+        } else {
+            medalContainer.innerHTML = '<div class="medal-img">⭐</div>';
+            resultText.style.color = "#f57c00";
+        }
+        
+        resultText.innerText = `درجتك هي: ${score} من 10`;
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة آداب الطعام التفاعلية</title>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FF9F43;
+            --secondary: #48dbfb;
+            --success: #1dd1a1;
+            --danger: #ff6b6b;
+            --dark: #2d3436;
+        }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        #game-container {
+            background: white;
+            padding: 40px;
+            border-radius: 40px;
+            box-shadow: 0 20px 0px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 550px;
+            text-align: center;
+            border: 6px solid white;
+            position: relative;
+        }
+        /* شاشة البداية */
+        #start-screen { display: flex; flex-direction: column; align-items: center; }
+        .logo-box { font-size: 80px; margin-bottom: 20px; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        
+        .main-title { color: var(--primary); font-size: 35px; margin-bottom: 10px; text-shadow: 2px 2px #eee; }
+        .sub-title { color: var(--dark); font-size: 18px; margin-bottom: 30px; }
+
+        .btn-main {
+            padding: 15px 40px;
+            font-size: 22px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            box-shadow: 0 6px 0 #e67e22;
+            transition: 0.2s;
+        }
+        .btn-main:active { transform: translateY(4px); box-shadow: 0 2px 0 #e67e22; }
+
+        /* منطقة الأسئلة */
+        #quiz-area { display: none; }
+        .question-text { font-size: 22px; color: var(--dark); margin: 20px 0; min-height: 60px; font-weight: 700; }
+        .options-grid { display: grid; gap: 10px; }
+        .opt-btn {
+            padding: 12px;
+            font-size: 18px;
+            border: 2px solid #f0f0f0;
+            border-radius: 15px;
+            background: #f9f9f9;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            transition: 0.3s;
+        }
+        .opt-btn:hover { background: var(--secondary); color: white; transform: scale(1.02); }
+
+        /* النتيجة النهائية */
+        #result-screen { display: none; }
+        .score-val { font-size: 50px; color: var(--primary); font-weight: 900; }
+
+        /* زر كتم الصوت */
+        #mute-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <button id="mute-btn" onclick="toggleMute()">🔊</button>
+
+    <!-- 1. شاشة البداية -->
+    <div id="start-screen">
+        <div class="logo-box">🐝</div>
+        <h1 class="main-title">آداب الطعام</h1>
+        <p class="sub-title">تعلم وامرح مع 15 سؤالاً عن آداب نبينا ﷺ</p>
+        <button class="btn-main" onclick="startGame()">ابدأ المغامرة 🚀</button>
+    </div>
+
+    <!-- 2. منطقة الأسئلة -->
+    <div id="quiz-area">
+        <div id="avatar" style="font-size: 60px;">😊</div>
+        <div id="progress" style="color: #636e72; font-weight: bold; margin-bottom: 10px;">السؤال 1 من 15</div>
+        <div class="question-text" id="q-text"></div>
+        <div class="options-grid" id="options"></div>
+    </div>
+
+    <!-- 3. شاشة النهاية -->
+    <div id="result-screen">
+        <div style="font-size: 70px;">🏆</div>
+        <h2 id="final-msg">أنت حقاً رائع!</h2>
+        <div class="score-val"><span id="final-score">0</span> / 15</div>
+        <button class="btn-main" onclick="location.reload()" style="margin-top: 20px; background: var(--secondary); box-shadow: 0 6px 0 #2980b9;">إعادة الدرس 🔄</button>
+    </div>
+</div>
+
+<!-- ملفات الصوت -->
+<!-- موسيقى الخلفية (رابط مباشر لموسيقى مرحة) -->
+<audio id="bg-music" loop src="https://www.soundhelix.com"></audio>
+<audio id="snd-correct" src="https://assets.mixkit.co"></audio>
+<audio id="snd-wrong" src="https://assets.mixkit.co"></audio>
+
+<script>
+    const questions = [
+        { q: "ما هو الأدب الذي ورد ذكره في الحديث الشريف؟", options: ["الأكل بسرعة", "عدم عيب الطعام", "النوم بعد الأكل"], correct: 1 },
+        { q: "ماذا فعلت نورة عندما رأت الطعام الذي لا تحبه؟", options: ["قالت طعمه سيء", "شكرت أمها", "أكلت بصمت"], correct: 0 },
+        { q: "لماذا نعتبر الطعام نعمة؟", options: ["لأنه مجاني", "لأنه من رزق الله وفضله علينا", "لأنه لذيذ فقط"], correct: 1 },
+        { q: "بماذا نصحت الأم ابنتها نورة؟", options: ["أن تطبخ بنفسها", "أن لا تذم الطعام لأنه قد يعجب غيرها", "أن تترك المائدة"], correct: 1 },
+        { q: "ما هو واجبنا تجاه نعم الله مثل الطعام؟", options: ["إهمالها", "شكر الله عليها", "تركها مكشوفة"], correct: 1 },
+        { q: "ماذا نفعل قبل البدء بالأكل؟", options: ["نغسل اليدين ونقول بسم الله", "نبدأ فوراً", "نتحدث بصوت عالٍ"], correct: 0 },
+        { q: "بأي يد يجب على المسلم أن يأكل؟", options: ["باليد اليسرى", "بأي يد يشاء", "باليد اليمنى"], correct: 2 },
+        { q: "ما معنى 'آكل مما يليني'؟", options: ["آكل من وسط الصحن", "آكل من الطعام القريب مني", "آكل من صحن غيري"], correct: 1 },
+        { q: "ماذا نقول عند الانتهاء من الطعام؟", options: ["بسم الله", "الحمد لله", "أنا شبعت"], correct: 1 },
+        { q: "لماذا نغسل أسناننا بعد الأكل؟", options: ["للتسلية", "للمحافظة على صحتها ونظافتها", "لأنها عادة قديمة"], correct: 1 },
+        { q: "ماذا تفعل إذا قدم لك صديقك طعاماً لا تشتهيه؟", options: ["تذمه وتنتقده", "تتركه بأدب دون عيبه", "تخبره أن طعامه سيء"], correct: 1 },
+        { q: "هل عاب الرسول ﷺ طعاماً قط؟", options: ["نعم أحياناً", "لا، لم يعبه أبداً", "فقط إذا كان بارداً"], correct: 1 },
+        { q: "من راوي حديث (ما عاب رسول الله طعاماً قط)؟", options: ["أبو هريرة رضي الله عنه", "راشد", "نورة"], correct: 0 },
+        { q: "ما رأيك في تصرف نورة في بداية القصة؟", options: ["تصرف صحيح", "تصرف غير لائق وينافي الأدب", "تصرف مضحك"], correct: 1 },
+        { q: "أدب الطعام (عدم عيب الطعام) يطبق:", options: ["قبل الأكل فقط", "أثناء الأكل فقط", "في جميع الأوقات"], correct: 2 }
+    ];
+
+    let currentIdx = 0;
+    let score = 0;
+    const bgMusic = document.getElementById('bg-music');
+
+    function startGame() {
+        bgMusic.volume = 0.2; // جعل الموسيقى في الخلفية (صوت منخفض)
+        bgMusic.play();
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('quiz-area').style.display = 'block';
+        showQuestion();
+    }
+
+    function toggleMute() {
+        bgMusic.muted = !bgMusic.muted;
+        document.getElementById('mute-btn').innerText = bgMusic.muted ? "🔇" : "🔊";
+    }
+
+    function showQuestion() {
+        const q = questions[currentIdx];
+        document.getElementById('progress').innerText = `السؤال ${currentIdx + 1} من 15`;
+        document.getElementById('q-text').innerText = q.q;
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = "";
+        
+        q.options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(i);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(i) {
+        if(i === questions[currentIdx].correct) {
+            score++;
+            document.getElementById('snd-correct').play();
+            document.getElementById('avatar').innerText = "👏";
+        } else {
+            document.getElementById('snd-wrong').play();
+            document.getElementById('avatar').innerText = "😟";
+        }
+
+        setTimeout(() => {
+            currentIdx++;
+            if(currentIdx < questions.length) {
+                document.getElementById('avatar').innerText = "😊";
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }, 1200);
+    }
+
+    function showResults() {
+        document.getElementById('quiz-area').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        document.getElementById('final-score').innerText = score;
+        if(score < 8) document.getElementById('final-msg').innerText = "محاولة جيدة، راجع الدرس مرة أخرى!";
+    }
+</script>
+</body>
+</html>

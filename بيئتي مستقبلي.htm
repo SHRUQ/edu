@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لعبة بيئتي مستقبلي - أ. شروق الحنيطي</title>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    <style>
+        :root { --primary: #2ecc71; --secondary: #3498db; --danger: #e74c3c; --accent: #f1c40f; }
+        body { font-family: 'Cairo', sans-serif; background: #f0fdf4; min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .game-card { width: 90%; max-width: 650px; background: white; border-radius: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); padding: 40px; position: relative; border: 10px solid var(--primary); text-align: center; z-index: 10; }
+        .question-box { background: #fffbeb; border: 4px dashed var(--secondary); border-radius: 25px; padding: 25px; margin: 15px 0; font-size: 24px; color: #2d3436; }
+        .emoji-icon { font-size: 55px; margin-bottom: 5px; display: block; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn-opt { padding: 18px; font-size: 19px; border: none; border-radius: 20px; cursor: pointer; transition: 0.3s; background: #f8f9fa; font-family: 'Cairo'; border-bottom: 5px solid #dfe6e9; color: #2d3436; }
+        .btn-opt:hover { transform: translateY(-3px); background: #eef2f3; }
+        .correct { background: var(--primary) !important; color: white; border-color: #27ae60; }
+        .wrong { background: var(--danger) !important; color: white; border-color: #c0392b; }
+        .score-box { background: var(--accent); padding: 8px 25px; border-radius: 30px; font-size: 20px; display: inline-block; margin-bottom: 10px; color: #444; }
+        .footer-name { position: absolute; bottom: 15px; left: 25px; font-size: 11px; color: #bdc3c7; font-weight: normal; }
+        #result-screen { display: none; }
+        .medal-emoji { font-size: 90px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .balloon { position: absolute; bottom: -50px; font-size: 45px; animation: fly 4s linear forwards; z-index: 1; pointer-events: none; }
+        @keyframes fly { to { transform: translateY(-110vh) rotate(20deg); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="game-card">
+    <div id="start-screen">
+        <div class="emoji-icon">🇦🇪</div>
+        <h1 style="color: var(--primary); font-size: 32px; margin: 10px 0;">🌍 بيئتي مستقبلي 🌍</h1>
+        <p style="font-size: 20px;">هيا بنا نحمي بيئة إماراتنا الغالية</p>
+        <button class="btn-opt" style="background: var(--primary); color: white; width: 200px; border-color: #27ae60;" onclick="initGame()">ابدأ اللعب 🎵</button>
+    </div>
+
+    <div id="quiz-screen" style="display: none;">
+        <div class="score-box">⭐ النتيجة: <span id="score-val">0</span> / 20</div>
+        <div class="question-box">
+            <span id="q-emoji" class="emoji-icon"></span>
+            <div id="q-text"></div>
+        </div>
+        <div class="options-grid" id="options-box"></div>
+        <div id="feedback" style="font-size: 40px; margin-top: 10px; min-height: 50px;"></div>
+    </div>
+
+    <div id="result-screen">
+        <h1 id="res-title"></h1>
+        <div id="res-medal"></div>
+        <p id="res-score-text" style="font-size: 24px; margin: 15px 0;"></p>
+        <button class="btn-opt" style="background: var(--secondary); color: white; border-color: #2980b9;" onclick="location.reload()">العب مرة أخرى</button>
+    </div>
+
+    <div class="footer-name">شروق الحنيطي</div>
+</div>
+
+<!-- ملف الموسيقى والمؤثرات -->
+<audio id="bg-music" loop preload="auto">
+    <source src="https://www.soundhelix.com" type="audio/mpeg">
+</audio>
+<audio id="snd-correct"><source src="https://assets.mixkit.co" type="audio/mpeg"></audio>
+<audio id="snd-wrong"><source src="https://assets.mixkit.co" type="audio/mpeg"></audio>
+
+<script>
+    const questions = [
+        { q: "ماذا يمثل هذا الرمز المهم للبيئة؟", emoji: "♻️", options: ["إعادة التدوير", "خطر"], a: "إعادة التدوير" },
+        { q: "محمية (صير بني ياس) في بلادي تحمي حيوان؟", emoji: "🦌", options: ["المها الوضيحي", "الفيل"], a: "المها الوضيحي" },
+        { q: "رمي الأكياس البلاستيكية في بحرنا يؤذي؟", emoji: "🐢", options: ["السلاحف البحرية", "السيارات"], a: "السلاحف البحرية" },
+        { q: "استخدام مياه الأمطار لسقي الحديقة يعتبر؟", emoji: "🌧️", options: ["توفير للماء", "إسراف"], a: "توفير للماء" },
+        { q: "أين نضع القوارير الزجاجية الفارغة؟", emoji: "🍾", options: ["حاوية الزجاج", "الأرض"], a: "حاوية الزجاج" },
+        { q: "دخان المصانع يلوث الهواء الذي نتنفسه؟", emoji: "🏭", options: ["صح", "خطأ"], a: "صح" },
+        { q: "عند مغادرة الصف، يجب أن نطفئ الأنوار؟", emoji: "💡", options: ["صح", "خطأ"], a: "صح" },
+        { q: "إعادة التدوير تعني تحويل النفايات لأشياء جديدة؟", emoji: "📦", options: ["صح", "خطأ"], a: "صح" },
+        { q: "محمية (رأس الخور) بدبي تشتهر بطيور؟", emoji: "🦩", options: ["الفلامنجو", "الدجاج"], a: "الفلامنجو" },
+        { q: "الحاوية الزرقاء نضع فيها الورق والكرتون؟", emoji: "🔵", options: ["نعم", "لا"], a: "نعم" },
+        { q: "توفير الكهرباء يحمي كوكبنا؟", emoji: "🔌", options: ["صح", "خطأ"], a: "صح" },
+        { q: "زراعة أشجار القرم تحمي شواطئ الإمارات؟", emoji: "🌳", options: ["صح", "خطأ"], a: "صح" },
+        { q: "نضع القمامة دائماً في الحاوية؟", emoji: "🗑️", options: ["صح", "خطأ"], a: "صح" },
+        { q: "تحويل العلب المعدنية لعلبة أقلام يسمى؟", emoji: "✏️", options: ["إعادة تدوير", "تخريب"], a: "إعادة تدوير" },
+        { q: "الأكياس القماشية أفضل من البلاستيك؟", emoji: "🛍️", options: ["صح", "خطأ"], a: "صح" },
+        { q: "هل يجوز ترك صنبور الماء مفتوحاً بقوة؟", emoji: "🚰", options: ["لا (هدر)", "نعم"], a: "لا (هدر)" },
+        { q: "الهواء النظيف يجعلنا نعيش بصحة جيدة؟", emoji: "🌬️", options: ["صح", "خطأ"], a: "صح" },
+        { q: "دولة الإمارات تهتم جداً بالبيئة؟", emoji: "🇦🇪", options: ["صح", "خطأ"], a: "صح" },
+        { q: "رمي النفايات في الشارع سلوك صحيح؟", emoji: "🚫", options: ["خطأ", "صح"], a: "خطأ" },
+        { q: "مستقبلي أجمل عندما تكون بيئتي نظيفة؟", emoji: "✨", options: ["صح", "خطأ"], a: "صح" }
+    ];
+
+    let currentIdx = 0; let score = 0;
+    const music = document.getElementById('bg-music');
+
+    function initGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('quiz-screen').style.display = 'block';
+        
+        // تشغيل الموسيقى عند البدء
+        music.volume = 0.4;
+        music.play().catch(e => console.log("Music play blocked by browser"));
+        
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if(currentIdx >= questions.length) return finish();
+        const q = questions[currentIdx];
+        document.getElementById('q-text').innerText = q.q;
+        document.getElementById('q-emoji').innerText = q.emoji;
+        
+        const box = document.getElementById('options-box');
+        box.innerHTML = '';
+        q.options.forEach(opt => {
+            const b = document.createElement('button');
+            b.className = 'btn-opt'; b.innerText = opt;
+            b.onclick = () => check(opt, b);
+            box.appendChild(b);
+        });
+        document.getElementById('feedback').innerText = "";
+    }
+
+    function check(ans, btn) {
+        const feed = document.getElementById('feedback');
+        if(ans === questions[currentIdx].a) {
+            score++; btn.classList.add('correct');
+            document.getElementById('snd-correct').play();
+            feed.innerHTML = "✅ أحسنت";
+            createBalloons();
+        } else {
+            btn.classList.add('wrong');
+            document.getElementById('snd-wrong').play();
+            feed.innerHTML = "❌ حاول ثانية";
+        }
+        document.getElementById('score-val').innerText = score;
+        setTimeout(() => { currentIdx++; loadQuestion(); }, 1500);
+    }
+
+    function createBalloons() {
+        for(let i=0; i<8; i++) {
+            const b = document.createElement('div');
+            b.className = 'balloon'; b.innerText = "🎈";
+            b.style.left = Math.random() * 95 + "%";
+            document.body.appendChild(b);
+            setTimeout(() => b.remove(), 4000);
+        }
+    }
+
+    function finish() {
+        document.getElementById('quiz-screen').style.display = 'none';
+        const screen = document.getElementById('result-screen');
+        screen.style.display = 'block';
+        if(score >= 10) {
+            document.getElementById('res-title').innerText = "رائع! أنت بطل الاستدامة 🌟";
+            document.getElementById('res-medal').innerHTML = `<div class="medal-emoji">🏆</div><h3>لقد حصلت على وسام من معلمتكِ</h3>`;
+        } else {
+            document.getElementById('res-title').innerText = "حاول مرة أخرى لتفوز بالوسام!";
+            document.getElementById('res-medal').innerHTML = `<div style="font-size:70px;">♻️</div>`;
+        }
+        document.getElementById('res-score-text').innerText = `درجتك النهائية هي: ${score} من 20`;
+    }
+</script>
+</body>
+</html>

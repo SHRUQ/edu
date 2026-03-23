@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تحدي الرياضيات مع أ. شروق الحنيطي</title>
+    <style>
+        @import url('https://fonts.googleapis.com');
+
+        :root { 
+            --primary: #0288d1; --accent: #ffca28; 
+            --success: #43a047; --danger: #e53935; --bg: #e1f5fe; 
+            --grid-line: #cfd8dc; --tally-color: #0d47a1;
+        }
+
+        body { 
+            font-family: 'Cairo', sans-serif; background: var(--bg); 
+            margin: 0; direction: rtl; overflow-x: hidden;
+        }
+
+        /* غلاف اللعبة */
+        #cover {
+            height: 100vh; background: linear-gradient(135deg, #0288d1, #01579b);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white; text-align: center; position: relative;
+        }
+        
+        .title-box h1 { font-size: 3.5rem; margin: 0; text-shadow: 3px 3px 0px rgba(0,0,0,0.2); }
+        .title-box p { font-size: 1.5rem; opacity: 0.9; margin-top: 10px; }
+
+        .start-btn {
+            padding: 18px 60px; font-size: 2.2rem; background: var(--accent);
+            border: none; border-radius: 50px; cursor: pointer; color: #333;
+            box-shadow: 0 8px 0 #ffa000; font-weight: bold; transition: 0.2s;
+            margin-top: 40px; animation: pulse 2s infinite;
+        }
+
+        .signature {
+            position: absolute; bottom: 25px; font-size: 1.1rem;
+            color: rgba(255,255,255,0.8); font-weight: normal;
+            border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px;
+        }
+
+        /* البطاقة الرئيسية */
+        .game-card {
+            background: white; border-radius: 35px; padding: 30px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1); max-width: 750px;
+            margin: 20px auto; border: 6px solid #81d4fa;
+        }
+
+        .header { display: flex; justify-content: space-between; color: var(--primary); margin-bottom: 20px; font-size: 1.2rem; }
+
+        #q-text { color: #263238; font-size: 1.6rem; margin-bottom: 40px; min-height: 70px; line-height: 1.5; }
+
+        .visual-container { 
+            background: #ffffff; border: 2px dashed #b0bec5; border-radius: 25px;
+            padding: 25px; min-height: 240px; display: flex; justify-content: center; 
+            align-items: center; margin-bottom: 30px;
+        }
+
+        /* علامات الإحصاء (4+1) */
+        .tally-bundle { position: relative; display: flex; gap: 6px; width: 42px; height: 50px; margin: 0 10px; }
+        .tally-line { width: 5px; height: 100%; background: var(--tally-color); border-radius: 3px; }
+        .tally-strike { 
+            position: absolute; width: 60px; height: 6px; background: #d32f2f; 
+            top: 22px; left: -10px; transform: rotate(-45deg); border-radius: 3px; 
+        }
+
+        .v-chart { display: flex; align-items: flex-end; gap: 35px; height: 160px; }
+        .v-square { width: 55px; height: 25px; border: 1px solid var(--grid-line); background: #fff; margin-bottom: 1px; }
+        .col-label { margin-top: 10px; font-weight: bold; font-size: 1rem; color: #455a64; background: #f5f5f5; padding: 2px 10px; border-radius: 10px; }
+
+        .h-row { display: flex; align-items: center; margin-bottom: 12px; }
+        .row-name { width: 100px; font-weight: bold; font-size: 1.1rem; color: #455a64; }
+        .h-square { width: 35px; height: 35px; border: 1px solid var(--grid-line); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 2px solid var(--grid-line); padding: 15px; text-align: center; font-size: 1.3rem; }
+        th { background: #e1f5fe; color: var(--primary); }
+
+        .options-zone { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; padding-top: 25px; border-top: 2px solid #f0f0f0; }
+        .btn-choice { 
+            padding: 15px 30px; font-size: 1.4rem; border: none; border-radius: 20px; 
+            background: #fff; border: 4px solid var(--primary); color: var(--primary);
+            cursor: pointer; font-weight: bold; transition: 0.2s; box-shadow: 0 4px 0 #0277bd;
+        }
+        .btn-choice:hover { background: var(--primary); color: white; transform: translateY(-3px); }
+        .num-btn { background: #fff9c4; border-color: #fbc02d; color: #5d4037; width: 65px; height: 65px; border-radius: 50%; font-size: 1.8rem; padding: 0; }
+
+        #feedback { font-size: 2rem; font-weight: bold; min-height: 50px; margin-bottom: 10px; }
+
+        @keyframes pulse { 0%, 100% {transform: scale(1);} 50% {transform: scale(1.05);} }
+    </style>
+</head>
+<body>
+
+<!-- الأصوات -->
+<audio id="bg-music" loop src="https://www.soundhelix.com"></audio>
+<audio id="snd-correct" src="https://assets.mixkit.co"></audio>
+<audio id="snd-fail" src="https://assets.mixkit.co"></audio>
+
+<div id="cover">
+    <div class="title-box">
+        <h1>📊 مَهرجان البَيانات 🍎</h1>
+        <p>تحدي الرياضيات الممتع - الصف الأول</p>
+    </div>
+    <button class="start-btn" onclick="startGame()">ابدأ اللعب الآن 🚀</button>
+    <div class="signature">إعداد المعلّمة: شروق الحنيطي</div>
+</div>
+
+<div id="game-ui" style="display:none;">
+    <div class="game-card">
+        <div class="header">
+            <span>السؤال: <span id="q-num">1</span> / 20</span>
+            <span style="color:var(--primary)">النقاط: <span id="score">0</span> / 20</span>
+        </div>
+
+        <h2 id="q-text"></h2>
+        <div class="visual-container" id="visual-area"></div>
+        <div id="feedback"></div>
+        <div class="options-zone" id="options-area"></div>
+    </div>
+</div>
+
+<script>
+let current = 0;
+let score = 0;
+
+function createTallyHTML(n) {
+    let bundles = Math.floor(n / 5);
+    let singles = n % 5;
+    let html = `<div style="display:flex; gap:15px; justify-content:center; align-items:center;">`;
+    for(let i=0; i<bundles; i++) {
+        html += `<div class="tally-bundle">
+                    <div class="tally-line"></div><div class="tally-line"></div>
+                    <div class="tally-line"></div><div class="tally-line"></div>
+                    <div class="tally-strike"></div>
+                 </div>`;
+    }
+    for(let j=0; j<singles; j++) {
+        html += `<div style="width:5px; height:50px; background:var(--tally-color); border-radius:3px; margin:0 4px;"></div>`;
+    }
+    return html + `</div>`;
+}
+
+const questions = [
+    { type: 'v-bar', q: "من تمثيل (الشطيرة المفضلة): كم شخصاً اختار الجبنة 🧀؟", data:[{n:'جبنة', v:6, c:'#ffca28'},{n:'لحم', v:3, c:'#f44336'},{n:'لبنة', v:5, c:'#4caf50'}], ans: 6 },
+    { type: 'v-bar', q: "ما هي الشطيرة التي حصلت على أقل عدد من الأصوات؟", data:[{n:'جبنة', v:6, c:'#ffca28'},{n:'لحم', v:3, c:'#f44336'},{n:'لبنة', v:5, c:'#4caf50'}], ans: "لحم" },
+    { type: 'h-bar', q: "من تمثيل (ألوان الأقلام): كم عدد الأقلام الزرقاء 🔵؟", data:[{n:'أصفر', v:2, c:'yellow'},{n:'أزرق', v:5, c:'blue'},{n:'أخضر', v:3, c:'green'}], ans: 5 },
+    { type: 'h-bar', q: "أي لون قلم هو الأكثر تكراراً في الرسم؟", data:[{n:'أصفر', v:2, c:'yellow'},{n:'أزرق', v:5, c:'blue'},{n:'أخضر', v:3, c:'green'}], ans: "أزرق" },
+    { type: 'table', q: "انظر لجدول الأسماك: كم عدد الأسماك 🐠 الموضحة بالعلامات؟", items:[{img:'🐠', n:7}], ans: 7 },
+    { type: 'table', q: "ما هو الرقم الذي تمثله حزمة علامات واحدة مشطوبة؟", items:[{img:'⭐', n:5}], ans: 5 },
+    { type: 'v-bar', q: "كم يزيد عدد محبي الجبنة (6) عن محبي اللحم (3)؟", data:[{n:'جبنة', v:6, c:'#ffca28'},{n:'لحم', v:3, c:'#f44336'}], ans: 3 },
+    { type: 'table', q: "كم عدد القلوب ❤️ الموضحة في الجدول؟", items:[{img:'❤️', n:4}], ans: 4 },
+    { type: 'v-bar', q: "أي نوع شطيرة اختاره 5 أشخاص؟", data:[{n:'جبنة', v:6, c:'#ffca28'},{n:'لحم', v:3, c:'#f44336'},{n:'لبنة', v:5, c:'#4caf50'}], ans: "لبنة" },
+    { type: 'table', q: "أي حيوان في الجدول يمثله الرقم 2؟", items:[{img:'🐱', n:8},{img:'🐶', n:2}], ans: '🐶' },
+    { type: 'h-bar', q: "كم مجموع الأقلام الصفراء (2) والزرقاء (5)؟", data:[{n:'أصفر', v:2, c:'yellow'},{n:'أزرق', v:5, c:'blue'}], ans: 7 },
+    { type: 'table', q: "ما هو العدد المفقود في جدول الفراشات 🦋؟", items:[{img:'🦋', n:6}], ans: 6 },
+    { type: 'v-bar', q: "كم عدد المربعات في العمود الملون؟", data:[{n:'أزرق', v:4, c:'blue'}], ans: 4 },
+    { type: 'table', q: "عد العلامات في الجدول واكتب الرقم الصحيح:", items:[{img:'✏️', n:3}], ans: 3 },
+    { type: 'h-bar', q: "أي صف هو الأقصر في الرسم البياني؟", data:[{n:'أ', v:8, c:'purple'},{n:'ب', v:3, c:'orange'}], ans: 'ب' },
+    { type: 'table', q: "كم مجموع (2 و 2) الموضح في الجدول؟", items:[{img:'🍎', n:2},{img:'🍐', n:2}], ans: 4 },
+    { type: 'v-bar', q: "أي عمود يمثل العدد 5؟", data:[{n:'أ', v:5, c:'green'},{n:'ب', v:1, c:'grey'}], ans: 'أ' },
+    { type: 'table', q: "كم عدد النجوم ⭐ الموضحة بحزمتين؟", items:[{img:'⭐', n:10}], ans: 10 },
+    { type: 'h-bar', q: "كم مربعاً في الصف الملون بالأحمر؟", data:[{n:'أحمر', v:6, c:'red'}], ans: 6 },
+    { type: 'table', q: "السؤال الأخير: كم وردة 🌸 في الجدول؟", items:[{img:'🌸', n:1}], ans: 1 }
+];
+
+function startGame() {
+    document.getElementById('bg-music').play();
+    document.getElementById('cover').style.display = 'none';
+    document.getElementById('game-ui').style.display = 'block';
+    render();
+}
+
+function render() {
+    const q = questions[current];
+    document.getElementById('q-num').innerText = current + 1;
+    document.getElementById('q-text').innerText = q.q;
+    document.getElementById('feedback').innerText = "";
+    
+    const viz = document.getElementById('visual-area');
+    const optArea = document.getElementById('options-area');
+    viz.innerHTML = ""; optArea.innerHTML = "";
+
+    if(q.type === 'v-bar') {
+        let html = `<div class="v-chart">`;
+        q.data.forEach(d => {
+            html += `<div class="col-group">`;
+            for(let i=0; i<6; i++) html += `<div class="v-square" style="background:${i < d.v ? d.c : '#fff'}"></div>`;
+            html += `<div class="col-label">${d.n}</div></div>`;
+        });
+        viz.innerHTML = html + `</div>`;
+    } 
+    else if(q.type === 'h-bar') {
+        let html = `<div style="width:100%">`;
+        q.data.forEach(d => {
+            html += `<div class="h-row"><div class="row-name">${d.n}</div>`;
+            for(let i=0; i<10; i++) html += `<div class="h-square" style="background:${i < d.v ? d.c : '#fff'}"></div>`;
+            html += `</div>`;
+        });
+        viz.innerHTML = html + `</div>`;
+    }
+    else if(q.type === 'table') {
+        let html = `<table><tr><th>العنصر</th><th>العلامات</th><th>العدد</th></tr>`;
+        q.items.forEach(it => {
+            html += `<tr><td><span style="font-size:2.5rem">${it.img}</span></td><td>${createTallyHTML(it.n)}</td><td style="color:red; font-weight:bold; font-size:1.8rem">؟</td></tr>`;
+        });
+        viz.innerHTML = html + `</table>`;
+    }
+
+    if(typeof q.ans === 'string') {
+        let opts = q.data ? q.data.map(d => d.n) : q.items.map(i => i.img);
+        opts.forEach(o => optArea.innerHTML += `<button class="btn-choice" onclick="check('${o}')">${o}</button>`);
+    } else {
+        for(let i=1; i<=10; i++) optArea.innerHTML += `<button class="btn-choice num-btn" onclick="check(${i})">${i}</button>`;
+    }
+}
+
+function check(val) {
+    let q = questions[current];
+    if(val == q.ans) {
+        score++;
+        document.getElementById('snd-correct').play();
+        document.getElementById('feedback').innerText = "أحسنت! إجابة صحيحة ✅";
+        document.getElementById('feedback').style.color = "green";
+    } else {
+        document.getElementById('feedback').innerText = "حاول مرة أخرى 🔄";
+        document.getElementById('feedback').style.color = "red";
+    }
+    document.getElementById('score').innerText = score;
+
+    setTimeout(() => {
+        current++;
+        if(current < 20) render();
+        else finishGame();
+    }, 1500);
+}
+
+function finishGame() {
+    let resultHTML = "";
+    if (score >= 10) {
+        document.getElementById('snd-correct').play();
+        resultHTML = `
+            <h1 style="font-size:5rem;">🏆</h1>
+            <h2 style="color:var(--success)">مبروك ناجح!</h2>
+            <p style="font-size:1.8rem;">أنت بطل حقيقي في الرياضيات</p>
+        `;
+    } else {
+        document.getElementById('snd-fail').play();
+        resultHTML = `
+            <h1 style="font-size:5rem;">🔄</h1>
+            <h2 style="color:var(--danger)">حاول مرة أخرى</h2>
+            <p style="font-size:1.8rem;">يمكنك المحاولة لتصبح أفضل!</p>
+        `;
+    }
+
+    document.getElementById('game-ui').innerHTML = `
+        <div class="game-card" style="text-align:center;">
+            ${resultHTML}
+            <div style="font-size:2rem; font-weight:bold; margin: 20px 0;">
+                نتيجتك هي: ${score} من 20
+            </div>
+            <button class="start-btn" onclick="location.reload()">العب مرة أخرى 🔄</button>
+            <div style="margin-top:30px; font-size:1.1rem; opacity:0.7;">إعداد المعلّمة: شروق الحنيطي</div>
+        </div>`;
+}
+</script>
+</body>
+</html>

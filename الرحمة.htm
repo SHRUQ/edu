@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة درس الرحمة</title>
+    <style>
+        :root { --primary: #2e7d32; --secondary: #4caf50; --bg: #f1f8e9; }
+        body { font-family: 'Arial', sans-serif; background-color: var(--bg); margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #game-card { background: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); text-align: center; z-index: 10; position: relative; }
+        h1 { color: var(--primary); margin-bottom: 10px; }
+        .btn { background: var(--secondary); color: white; border: none; padding: 12px 25px; font-size: 18px; border-radius: 10px; cursor: pointer; margin: 8px; width: 80%; transition: 0.3s; }
+        .btn:hover { background: var(--primary); transform: scale(1.05); }
+        #quiz-area, #result-area { display: none; }
+        .progress { font-weight: bold; color: #666; margin-bottom: 15px; }
+        .question-text { font-size: 20px; margin-bottom: 20px; color: #333; min-height: 60px; }
+        /* البالونات */
+        .balloon { position: absolute; bottom: -100px; width: 40px; height: 55px; border-radius: 50%; animation: floatUp 7s linear infinite; opacity: 0.7; }
+        @keyframes floatUp { to { transform: translateY(-110vh) rotate(20deg); } }
+    </style>
+</head>
+<body>
+
+    <!-- موسيقى خلفية تلقائية -->
+    <audio id="bgAudio" loop>
+        <source src="https://www.soundhelix.com" type="audio/mpeg">
+    </audio>
+
+    <div id="game-card">
+        <!-- شاشة البداية -->
+        <div id="start-area">
+            <h1>درس الرحمة ❤️</h1>
+            <p>مرحباً بك في مسابقة "من لا يرحم لا يُرحم"</p>
+            <button class="btn" onclick="startQuiz()">ابدأ اللعبة الآن 🚀</button>
+        </div>
+
+        <!-- منطقة الأسئلة -->
+        <div id="quiz-area">
+            <div class="progress" id="q-count">سؤال 1 من 20</div>
+            <div class="question-text" id="q-text"></div>
+            <div id="options-box"></div>
+        </div>
+
+        <!-- شاشة النتيجة -->
+        <div id="result-area">
+            <h1>انتهت الأسئلة! 🎈</h1>
+            <p style="font-size: 24px;">نتيجتك هي:</p>
+            <div id="final-score" style="font-size: 40px; color: var(--primary); font-weight: bold;"></div>
+            <button class="btn" onclick="location.reload()">إعادة المحاولة 🔄</button>
+        </div>
+    </div>
+
+    <!-- حاوية البالونات -->
+    <div id="balloon-container"></div>
+
+    <script>
+        const questions = [
+            { q: "ما معنى الرحمة؟", o: ["القسوة", "الرقة والرفق", "الإهمال"], a: 1 },
+            { q: "راوي حديث 'من لا يرحم لا يرحم' هو أبو هريرة رضي الله عنه.", o: ["صح", "خطأ"], a: 0 },
+            { q: "من لا يرحم الناس يستحق رحمة الله تعالى.", o: ["صح", "خطأ"], a: 1 },
+            { q: "الرحمة بالحيوانات سبب لدخول الجنة.", o: ["صح", "خطأ"], a: 0 },
+            { q: "من كان يحمل النبي ﷺ على ظهره وهو يصلي؟", o: ["حفيده الحسن", "حفيدته أمامة", "ابنه إبراهيم"], a: 1 },
+            { q: "لماذا كان النبي ﷺ ينزل أمامة عند الركوع؟", o: ["لأنه تعب", "خوفاً عليها من السقوط", "لأن الصلاة انتهت"], a: 1 },
+            { q: "الرجل الذي سقى الكلب، شكر الله له فغفر له.", o: ["صح", "خطأ"], a: 0 },
+            { q: "المرأة التي حبست القطة دخلت النار لأنها لم تطعمها.", o: ["صح", "خطأ"], a: 0 },
+            { q: "ما القرار الصحيح تجاه من يربط حمامة للعب بها؟", o: ["ألعب معه", "أرفض وأنصحه بالرفق", "أشاهده فقط"], a: 1 },
+            { q: "الرحمة تكون بالوالدين والأصدقاء فقط.", o: ["صح", "خطأ"], a: 1 },
+            { q: "معنى كلمة 'يلهث' في حديث الكلب:", o: ["ينام", "يخرج لسانه من العطش", "يركض"], a: 1 },
+            { q: "الرحمة بالجماد والحيوان من أكبر أسباب رحمة الله.", o: ["صح", "خطأ"], a: 0 },
+            { q: "قال تعالى: (فبما رحمة من الله لنت لهم).", o: ["صح", "خطأ"], a: 0 },
+            { q: "يجب علينا رحمة الصغير واحترام الكبير.", o: ["صح", "خطأ"], a: 0 },
+            { q: "الرحمة بالحيوان تعني توفير الطعام والشراب له.", o: ["صح", "خطأ"], a: 0 },
+            { q: "من أمثلة الرحمة بالإنسان زيارة المريض.", o: ["صح", "خطأ"], a: 0 },
+            { q: "الرحمة تزيد من كره الناس للشخص.", o: ["صح", "خطأ"], a: 1 },
+            { q: "كان الرسول ﷺ رحيماً عطوفاً بالأطفال.", o: ["صح", "خطأ"], a: 0 },
+            { q: "حبس القطة ومنعها من أكل 'خشاش الأرض' تصرف رحيم.", o: ["صح", "خطأ"], a: 1 },
+            { q: "الهدف من رحمة الجد والجدة هو إدخال السرور لقلبيهما.", o: ["صح", "خطأ"], a: 0 }
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+
+        function startQuiz() {
+            document.getElementById('start-area').style.display = 'none';
+            document.getElementById('quiz-area').style.display = 'block';
+            document.getElementById('bgAudio').play();
+            showQuestion();
+            makeBalloons();
+        }
+
+        function showQuestion() {
+            const q = questions[currentQ];
+            document.getElementById('q-count').innerText = `سؤال ${currentQ + 1} من 20`;
+            document.getElementById('q-text').innerText = q.q;
+            const box = document.getElementById('options-box');
+            box.innerHTML = '';
+            q.o.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(i);
+                box.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(i) {
+            if (i === questions[currentQ].a) score++;
+            currentQ++;
+            if (currentQ < questions.length) showQuestion();
+            else showResult();
+        }
+
+        function showResult() {
+            document.getElementById('quiz-area').style.display = 'none';
+            document.getElementById('result-area').style.display = 'block';
+            document.getElementById('final-score').innerText = `${score} / 20`;
+        }
+
+        function makeBalloons() {
+            const container = document.getElementById('balloon-container');
+            const colors = ['#f44336', '#e91e63', '#9c27b0', '#2196f3', '#4caf50', '#ffeb3b'];
+            setInterval(() => {
+                const b = document.createElement('div');
+                b.className = 'balloon';
+                b.style.left = Math.random() * 100 + 'vw';
+                b.style.background = colors[Math.floor(Math.random() * colors.length)];
+                container.appendChild(b);
+                setTimeout(() => b.remove(), 7000);
+            }, 500);
+        }
+    </script>
+</body>
+</html>
